@@ -1,0 +1,943 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PawPulse - Vizag</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --purple: #8A2BE2;
+            --white: #FFFFFF;
+            --gray: #F8F9FA;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--white);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .title {
+            font-size: 8vw;
+            font-weight: 700;
+            color: var(--white);
+            text-shadow:
+                3px 3px 0 var(--purple),
+                -3px -3px 0 var(--purple),
+                3px -3px 0 var(--purple),
+                -3px 3px 0 var(--purple);
+            perspective: 1000px;
+            cursor: default;
+        }
+
+        .title span {
+            display: inline-block;
+            transition: transform 0.2s ease-out;
+        }
+
+        .scroll-prompt {
+            position: absolute;
+            bottom: 2rem;
+            color: var(--purple);
+            font-size: 1.2rem;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--purple);
+            cursor: pointer;
+            padding: 0 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .auth-buttons {
+                display: none;
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: var(--white);
+                flex-direction: column;
+                width: 100%;
+                text-align: center;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                padding: 1rem 0;
+            }
+
+            .auth-buttons.active {
+                display: flex;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .nav-links {
+                margin-right: auto;
+            }
+        }
+
+        /* Map Section */
+        .map-section {
+            min-height: 100vh;
+            background: #af7cde;
+            padding: 4rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #tracker-map {
+            width: 100%;
+            max-width: 800px;
+            height: 500px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(138, 43, 226, 0.1);
+            border: 2px solid var(--purple);
+        }
+
+        /* Marker Styles */
+        .leaflet-marker-icon {
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .offline-dog-icon {
+            filter: grayscale(1) brightness(0.8);
+        }
+
+        .blackfire {
+            pointer-events: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .circle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #8A2BE2;
+            transition:
+                transform 0.2s ease-out,
+                opacity 0.2s ease-out,
+                background-color 0.3s ease;
+            opacity: 1;
+        }
+
+        .paw-bg {
+            position: absolute;
+            width: 60vw;
+            max-width: 400px;
+            opacity: 0.4;
+            z-index: 1;
+            pointer-events: none;
+            filter: blur(2px);
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .title {
+            position: relative;
+            z-index: 2;
+        }
+
+        .map-title {
+            color: var(--white);
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .map-title {
+                font-size: 2rem;
+            }
+        }
+
+        .about-section {
+            background: var(--gray);
+            padding: 4rem 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .about-content {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .text-content {
+            flex: 1;
+        }
+
+        .image-container {
+            flex: 1;
+            text-align: center;
+        }
+
+        .about-image {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .about-title {
+            color: var(--purple);
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .about-text {
+            color: #666;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            text-align: justify;
+        }
+
+        @media (max-width: 768px) {
+            .about-content {
+                flex-direction: column;
+                gap: 2rem;
+            }
+
+            .about-title {
+                font-size: 2rem;
+                text-align: center;
+            }
+
+            .image-container {
+                order: -1;
+            }
+
+            .about-image {
+                max-width: 300px;
+            }
+        }
+
+        .features-section {
+            padding: 4rem 2rem;
+            background: var(--white);
+        }
+
+        .section-heading {
+            text-align: center;
+            color: var(--purple);
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 10px;
+            background: var(--gray);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 1rem;
+        }
+
+        /* Eco Section */
+        .eco-section {
+            padding: 4rem 2rem;
+            background: var(--white);
+            display: flex;
+            justify-content: center;
+        }
+
+        .eco-content {
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .eco-icon {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Image Slider */
+        .slider-section {
+            padding: 4rem 0;
+            background: var(--gray);
+        }
+
+        .slider-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            max-width: 1200px;
+            margin: 0 auto;
+            border-radius: 15px;
+        }
+
+        .slider-image {
+            flex: 0 0 100%;
+            scroll-snap-align: start;
+            height: 400px;
+            object-fit: cover;
+        }
+
+        @media (max-width: 768px) {
+            .eco-content {
+                grid-template-columns: 1fr;
+            }
+
+            .slider-image {
+                height: 300px;
+            }
+
+            .section-heading {
+                font-size: 2rem;
+            }
+        }
+
+        .pet-input-group {
+            margin: 1rem 0;
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--white);
+            padding: 0.5rem 2rem; /* Initial compact padding */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: padding 0.3s ease;
+        }
+        /* When scrolled, increase navbar padding (and thus size) */
+        .navbar.scrolled {
+            padding: 1.5rem 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            color: var(--purple);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        
+
+        .nav-link:hover {
+            color: #6a1b9a;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        @media (max-width: 768px) {
+    /* Remove position: relative from navbar */
+    .navbar {
+        flex-wrap: wrap;
+        padding: 1rem !important;
+        position: fixed !important; /* Keep navbar fixed */
+    }
+
+    /* Add z-index to mobile menu button */
+    .mobile-menu-btn {
+        display: block;
+        z-index: 10001;
+        margin-left: auto; /* Push to right side */
+    }
+
+    /* Adjust auth buttons positioning */
+    .auth-buttons {
+        display: none;
+        position: fixed; /* Change from absolute to fixed */
+        top: 60px; /* Adjust based on navbar height */
+        right: 0;
+        left: 0;
+        width: 100%;
+        background: var(--white);
+        flex-direction: column;
+        padding: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 10000;
+    }
+
+    /* Hide regular nav links on mobile */
+    .nav-links {
+        display: none;
+    }
+}
+
+        /* Auth Modals */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            z-index: 10001;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-input {
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .form-button {
+            background: var(--purple);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: #8A2BE2; /* Purple Background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .loader {
+            font-size: 3rem;
+            animation: spin 1.5s infinite linear;
+            color: white;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 768px) {
+    .title {
+        /* font-weight: 100; Lighter font-weight for mobile */
+        font-size: 4rem; /* Increase font size for mobile */
+        height: 20vh;
+    }
+}
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div class="loader">
+            🐾
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-links">
+            <a href="#" class="nav-link">Home</a>
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#map" class="nav-link">Map</a>
+        </div>
+        <button class="mobile-menu-btn">☰</button>
+        <div class="auth-buttons">
+            <button class="form-button" onclick="showModal('login')">Login</button>
+            <button class="form-button" onclick="showModal('register')">Register</button>
+        </div>
+    </nav>
+
+    <div id="loginModal" class="auth-modal">
+        <form class="auth-form" onsubmit="handleLogin(event)">
+            <h2>Login</h2>
+            <input type="email" name="email" class="form-input" placeholder="Email" required>
+            <input type="password" name="password" class="form-input" placeholder="Password" required>
+            <button type="submit" class="form-button">Login</button>
+        </form>
+    </div>
+
+    <div id="registerModal" class="auth-modal">
+        <form class="auth-form" onsubmit="handleRegister(event)">
+            <h2>Register</h2>
+            <input type="text" name="name" class="form-input" placeholder="Your Name" required>
+            <input type="email" name="email" class="form-input" placeholder="Email" required>
+            <input type="password" name="password" class="form-input" placeholder="Password" required>
+            <div id="petFields">
+                </div>
+            <button type="button" class="form-button" onclick="addPetField()">+ Add Pet</button>
+            <button type="submit" class="form-button">Register</button>
+        </form>
+    </div>
+
+    <div class="blackfire">
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+        <div class="circle"></div>
+    </div>
+
+    <section class="hero">
+        <img src="./bruh.png" class="paw-bg" alt="paw background">
+        <h1 class="title">PAWPULSE</h1>
+        <div class="scroll-prompt">Scroll to Explore ↓</div>
+    </section>
+
+    <section class="about-section">
+        <div class="about-content">
+            <div class="text-content">
+                <h2 class="about-title">About PawPulse</h2>
+                <p class="about-text">
+                    PawPulse is a revolutionary pet tracking system designed to keep your furry friends safe by offering real-time GPS tracking, instant alerts, and health monitoring. With PawPulse, you can set safe zones and receive notifications if your pet wanders too far, track their activity levels to ensure their well-being, and even alert nearby veterinarians in case of emergencies.
+                </p>
+            </div>
+            <div class="image-container">
+                <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                    alt="Happy dog with collar"
+                    class="about-image">
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section" id="features">
+        <h2 class="section-heading">What Our Product Offers</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A2BE2'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E"
+                    class="feature-icon"
+                    alt="GPS Tracking">
+                <h3>Real-time GPS Tracking</h3>
+                <p>Instant location updates every 30 seconds</p>
+            </div>
+            <div class="feature-card">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A2BE2'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E"
+                    class="feature-icon"
+                    alt="Health Monitoring">
+                <h3>Health Monitoring</h3>
+                <p>Track activity, sleep patterns & vital signs</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slider-section">
+        <div class="slider-container">
+            <img src="https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb"
+                class="slider-image"
+                alt="Dog with collar">
+            <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e"
+                class="slider-image"
+                alt="Mobile app interface">
+        </div>
+    </section>
+
+    <section class="eco-section">
+        <div class="eco-content">
+            <div>
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A2BE2'%3E%3Cpath d='M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM12 9c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5z'/%3E%3C/svg%3E"
+                    class="eco-icon"
+                    alt="Recycle">
+                <h2>Eco-Friendly Commitment</h2>
+                <p>♻️ Recycle old collars for 20% discount on new purchases</p>
+                <p>🌱 Biodegradable packaging materials</p>
+                <p>🔋 Long-lasting rechargeable batteries</p>
+            </div>
+            <div>
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.66 0-3 1.34-3 3v9c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3v-9c0-1.66-1.34-3-3-3zm-6 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z' fill='%238A2BE2'/%3E%3C/svg%3E" 
+     class="eco-icon" 
+     alt="Secure Lock" />
+                <h2>Premium Comfort & Security</h2>
+                <p>🛡️ Military-grade data encryption</p>
+                <p>🛋️ Hypoallergenic silicone collar material</p>
+                <p>🔐 Strict no-data-sharing policy</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="map-section" id="map">
+        <h2 class="map-title">Track Your Pets in Realtime</h2>
+        <div id="tracker-map"></div>
+    </section>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+
+        // Add this JavaScript
+        document.querySelector('.mobile-menu-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.querySelector('.auth-buttons').classList.toggle('active');
+        });
+
+        document.addEventListener('click', function(e) {
+            const authButtons = document.querySelector('.auth-buttons');
+            if (!e.target.closest('.auth-buttons') && !e.target.closest('.mobile-menu-btn')) {
+                authButtons.classList.remove('active');
+            }
+        });
+
+        // Close menu when clicking on auth buttons
+        document.querySelectorAll('.auth-buttons .form-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelector('.auth-buttons').classList.remove('active');
+            });
+        });
+
+        window.addEventListener("load", function () {
+            const loader = document.getElementById("loading-screen");
+            loader.style.opacity = "0";
+            setTimeout(() => {
+                loader.style.display = "none";
+            }, 500); // Smooth fade out
+        });
+
+        // Navbar scroll effect: Increase navbar padding when scrolling down
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Pet field counter for registration
+        let petCounter = 0;
+        function addPetField() {
+            petCounter++;
+            const petFields = document.getElementById('petFields');
+            const newPetGroup = document.createElement('div');
+            newPetGroup.className = 'pet-input-group';
+            newPetGroup.innerHTML = `
+                <h3>Pet ${petCounter}</h3>
+                <input type="text" name="petName${petCounter}" class="form-input" placeholder="Pet Name" required>
+                <input type="text" name="petBreed${petCounter}" class="form-input" placeholder="Breed" required>
+                <input type="number" name="petAge${petCounter}" class="form-input" placeholder="Age" required>
+            `;
+            petFields.appendChild(newPetGroup);
+        }
+
+        // Handle user registration
+        function handleRegister(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const user = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                pets: []
+            };
+
+            // Collect pet data
+            for (let i = 1; i <= petCounter; i++) {
+                const pet = {
+                    name: formData.get(`petName${i}`),
+                    breed: formData.get(`petBreed${i}`),
+                    age: formData.get(`petAge${i}`),
+                    lat: getRandomVizagLatitude(),
+                    lon: getRandomVizagLongitude()
+                };
+                if (pet.name) user.pets.push(pet);
+            }
+
+            localStorage.setItem(user.email, JSON.stringify(user));
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            window.location.href = 'dashboard.html';
+        }
+
+        // Generate random latitude within Vizag's bounds
+        function getRandomVizagLatitude() {
+            const minLat = 17.65;
+            const maxLat = 17.85;
+            return Math.random() * (maxLat - minLat) + minLat;
+        }
+
+        // Generate random longitude within Vizag's bounds
+        function getRandomVizagLongitude() {
+            const minLon = 83.15;
+            const maxLon = 83.35;
+            return Math.random() * (maxLon - minLon) + minLon;
+        }
+
+        // Handle user login
+        function handleLogin(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const user = JSON.parse(localStorage.getItem(formData.get('email')));
+            
+            if (user && user.password === formData.get('password')) {
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                window.location.href = 'dashboard.html';
+            } else {
+                alert('Invalid credentials');
+            }
+        }
+
+        // Modal handling functions
+        function showModal(type) {
+            document.getElementById(`${type}Modal`).style.display = 'block';
+        }
+
+        function hideModals() {
+            document.querySelectorAll('.auth-modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // Close modals when clicking outside of them
+        window.onclick = function(e) {
+            if (e.target.classList.contains('auth-modal')) {
+                hideModals();
+            }
+        };
+
+        // Check if already logged in and redirect if so
+        if (localStorage.getItem('currentUser')) {
+            window.location.href = 'dashboard.html';
+        }
+
+        // Map Initialization
+        const vizagCoords = [17.6868, 83.2185];
+        const baseDogIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/616/616408.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40]
+        });
+
+        const offlineDogIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/194/194279.png',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40],
+            popupAnchor: [0, -40],
+            className: 'offline-dog-icon'
+        });
+
+        const map = L.map('tracker-map').setView(vizagCoords, 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Load registered pets from localStorage and add markers
+       const samplePets = [
+    {
+        name: "Rocky",
+        breed: "German Shepherd",
+        age: 4,
+        lat: 17.7280,
+        lon: 83.3367
+    },
+    {
+        name: "Lakshmi",
+        breed: "Golden Retriever",
+        age: 2,
+        lat: 17.7500,
+        lon: 83.3444
+    },
+    {
+        name: "Bheem",
+        breed: "Indian Pariah",
+        age: 3,
+        lat: 17.7666,
+        lon: 83.2486
+    }
+];
+
+// Add sample pet markers
+samplePets.forEach(pet => {
+    const marker = L.marker([pet.lat, pet.lon], {
+        icon: baseDogIcon
+    }).addTo(map);
+
+    marker.bindPopup(`
+        <div style="min-width: 200px">
+            <h3 style="margin: 0">🐾 ${pet.name}</h3>
+            <p style="margin: 5px 0">
+                Breed: ${pet.breed}<br>
+                Age: ${pet.age}<br>
+                Status: <span style="color: #2ecc71">Online</span>
+            </p>
+        </div>
+    `);
+});
+
+        // Additional animations (mouse move, circles, etc.)
+        let lastMoveTime = Date.now();
+        let inactivityTimeout;
+        const INACTIVITY_DELAY = 2000;
+        function getBgColor(element) {
+            return window.getComputedStyle(element).backgroundColor;
+        }
+        function toggleCircles(visible) {
+            document.querySelectorAll('.circle').forEach(circle => {
+                circle.style.opacity = visible ? '1' : '0';
+            });
+        }
+        window.addEventListener("mousemove", function (e) {
+            lastMoveTime = Date.now();
+            clearTimeout(inactivityTimeout);
+            toggleCircles(true);
+            const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+            const bgColor = getBgColor(targetElement);
+            document.querySelectorAll('.circle').forEach(circle => {
+                circle.style.backgroundColor = bgColor === 'rgb(138, 43, 226)' ? '#ffffff' : '#8A2BE2';
+            });
+            inactivityTimeout = setTimeout(() => {
+                if (Date.now() - lastMoveTime >= INACTIVITY_DELAY) {
+                    toggleCircles(false);
+                }
+            }, INACTIVITY_DELAY);
+        });
+        document.addEventListener('mousemove', (e) => {
+            const title = document.querySelector('.title');
+            const letters = document.querySelectorAll('.title span');
+            const rect = title.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            letters.forEach((letter, index) => {
+                const offset = (index - 3.5) * 20;
+                const dx = e.clientX - centerX;
+                const dy = e.clientY - centerY;
+                const rotateX = dy * -0.02;
+                const rotateY = dx * 0.04;
+                letter.style.transform = `
+                    translate3d(${offset}px, 0, 0)
+                    rotateX(${rotateX}deg)
+                    rotateY(${rotateY}deg)
+                `;
+            });
+        });
+        const coords = { x: 0, y: 0 };
+        const circles = document.querySelectorAll(".circle");
+        const blackfire = document.querySelector(".blackfire");
+        circles.forEach(function (circle, index) {
+            circle.x = 0;
+            circle.y = 0;
+            circle.style.backgroundColor = "#00abf0";
+        });
+        window.addEventListener("mousemove", function (e) {
+            coords.x = e.clientX;
+            coords.y = e.clientY;
+        });
+        function animateCircles() {
+            let x = coords.x;
+            let y = coords.y;
+            blackfire.style.top = x;
+            blackfire.style.left = y;
+            circles.forEach(function (circle, index) {
+                circle.style.left = x - 12 + "px";
+                circle.style.top = y - 12 + "px";
+                circle.style.scale = (circles.length - index) / circles.length;
+                circle.x = x;
+                circle.y = y;
+                const nextCircle = circles[index + 1] || circles[0];
+                x += (nextCircle.x - x) * 0.3;
+                y += (nextCircle.y - y) * 0.3;
+            });
+            requestAnimationFrame(animateCircles);
+        }
+        animateCircles();
+
+        window.addEventListener('scroll', () => {
+    document.querySelector('.auth-buttons').classList.remove('active');
+});
+    </script>
+</body>
+</html>

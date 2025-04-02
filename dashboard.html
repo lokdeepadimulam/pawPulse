@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PawPulse Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding-top: 70px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: #800080;
+            color: #fff;
+            padding: 10px 20px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .nav-links {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-links button {
+            background-color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-left: 10px;
+        }
+
+        .nav-links button:hover {
+            background-color: #e2e2e2;
+            transform: scale(1.02);
+        }
+
+        .auth-buttons button {
+            background-color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            margin-right: 30px;
+        }
+
+        .auth-buttons button:hover {
+            background-color: #e2e2e2;
+            transform: scale(1.02);
+        }
+
+        .dashboard-map {
+            height: calc(100vh - 400px);
+            width: 100%;
+            margin-top: 20px;
+            border-top: 2px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .leaflet-popup-content h3 {
+            margin: 0 0 5px 0;
+            color: #007BFF;
+            font-weight: 500;
+        }
+
+        .leaflet-popup-content p {
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .health-metrics-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            padding: 20px;
+            background-color: #fff;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-item {
+            text-align: center;
+            margin: 10px;
+            width: 200px;
+        }
+
+        .metric-item i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .metric-item .heart-icon {
+            color: #e74c3c;
+        }
+
+        .metric-item .stress-icon {
+            color: #f39c12;
+        }
+
+        .add-pet-form {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+        }
+
+        .add-pet-form input {
+            margin-bottom: 5px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .nav-links {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .nav-links button {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            .metric-item {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-links">
+            <span class="nav-link">Welcome, <span id="userName"></span></span>
+            <button onclick="showAddPetForm()">Add Pet</button>
+        </div>
+        <div class="auth-buttons">
+            <button class="form-button" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <div id="dashboard-map" class="dashboard-map"></div>
+
+    <div class="health-metrics-container" id="healthMetricsContainer">
+    </div>
+
+    <div id="addPetForm" class="add-pet-form">
+        <input type="text" id="petName" placeholder="Pet Name"><br>
+        <input type="text" id="petBreed" placeholder="Breed"><br>
+        <input type="number" id="petAge" placeholder="Age"><br>
+        <button onclick="addPet()">Add</button>
+        <button onclick="hideAddPetForm()">Cancel</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser) window.location.href = 'index.html';
+
+        const map = L.map('dashboard-map').setView([17.6868, 83.2185], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        function updateMapMarkers() {
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+            currentUser.pets.forEach(pet => {
+                L.marker([
+                    17.6868 + (Math.random() * 0.1 - 0.05),
+                    83.2185 + (Math.random() * 0.1 - 0.05)
+                ], {
+                    icon: L.icon({
+                        iconUrl: 'https://cdn-icons-png.flaticon.com/512/616/616408.png',
+                        iconSize: [40, 40]
+                    })
+                }).addTo(map).bindPopup(`<h3>${pet.name}</h3><p>Breed: ${pet.breed}<br>Age: ${pet.age}</p>`);
+            });
+        }
+        updateMapMarkers();
+
+        document.getElementById('userName').textContent = currentUser.name;
+
+        function generatePetMetrics(pet) {
+            const heartRate = Math.floor(Math.random() * 80 + 70);
+            const stressLevel = (Math.random() * 100).toFixed(2) + '%';
+            return `
+                <div class="metric-item">
+                    <h3>${pet.name}</h3>
+                    <i class="fas fa-heart heart-icon"></i>
+                    <p>Heart Rate: ${heartRate} bpm</p>
+                </div>
+                <div class="metric-item">
+                    <h3>${pet.name}</h3>
+                    <i class="fas fa-exclamation-triangle stress-icon"></i>
+                    <p>Stress Level: ${stressLevel}</p>
+                </div>
+            `;
+        }
+
+        function displayPetMetrics() {
+            const metricsContainer = document.getElementById('healthMetricsContainer');
+            metricsContainer.innerHTML = '';
+            currentUser.pets.forEach(pet => {
+                metricsContainer.innerHTML += generatePetMetrics(pet);
+            });
+        }
+
+        displayPetMetrics();
+        setInterval(displayPetMetrics, 5000);
+
+        function showAddPetForm() {
+            document.getElementById('addPetForm').style.display = 'block';
+        }
+
+        function hideAddPetForm() {
+            document.getElementById('addPetForm').style.display = 'none';
+        }
+
+        function addPet() {
+    const name = document.getElementById('petName').value;
+    const breed = document.getElementById('petBreed').value;
+    const age = parseInt(document.getElementById('petAge').value);
+
+    if (name && breed && !isNaN(age)) {
+        // Update current user
+        currentUser.pets.push({ name, breed, age });
+        
+        // Update both currentUser and the main user record
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        localStorage.setItem(currentUser.email, JSON.stringify(currentUser)); // Add this line
+
+        hideAddPetForm();
+        displayPetMetrics();
+        updateMapMarkers();
+    } else {
+        alert('Please fill in all fields correctly.');
+    }
+}
+
+       function logout() {
+    // Clear both currentUser and session
+    localStorage.removeItem('currentUser');
+    sessionStorage.clear();
+    window.location.href = 'index.html';
+}
+
+function handleLogin(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const user = JSON.parse(localStorage.getItem(formData.get('email')));
+    
+    if (user && user.password === formData.get('password')) {
+        // Set both currentUser and maintain the original user record
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem(user.email, JSON.stringify(user));
+        window.location.href = 'dashboard.html';
+    } else {
+        alert('Invalid credentials');
+    }
+}
+    </script>
+</body>
+</html>
