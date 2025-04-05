@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PawPulse Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    /* --- Base Variables & Body --- */
+    :root {
+        --purple: #800080; --white: #FFFFFF; --gray-light: #f5f5f5;
+        --gray-medium: #eee; --gray-dark: #ddd; --text-dark: #333;
+        --text-medium: #555; --text-light: #777; --blue: #007BFF;
+        --red: #e74c3c; --orange: #f39c12; --yellow: #f1c40f;
+        --green: #2ecc71; --light-purple-bg: #fdfaff;
+    }
+    body {
+      font-family: 'Roboto', sans-serif; margin: 0;
+      padding-top: 70px; background-color: var(--gray-light); color: var(--text-dark);
+    }
+
+    /* --- Navbar --- */
+    .navbar {
+      position: fixed; top: 0; left: 0; width: 100%; background: var(--purple);
+      color: var(--white); padding: 10px 20px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      display: flex; justify-content: space-between; align-items: center;
+      z-index: 1000; box-sizing: border-box;
+    }
+    .nav-links { font-size: 1.1rem; display: flex; align-items: center; flex-wrap: wrap; }
+    .nav-link { margin-right: 15px; }
+    .nav-links button, .auth-buttons button, .modal button, .pet-card button {
+      background-color: var(--white); color: var(--purple); border: 1px solid var(--purple);
+      padding: 6px 12px; border-radius: 4px; font-size: 0.9rem; cursor: pointer;
+      transition: all 0.2s ease; margin-left: 10px; margin-top: 5px; margin-bottom: 5px;
+    }
+    .auth-buttons button { margin-left: 0; margin-right: 10px; }
+    .nav-links button:hover, .auth-buttons button:hover, .modal button:hover, .pet-card button:hover {
+      background-color: var(--purple); color: var(--white); transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .modal button.cancel-btn, .add-pet-form button.cancel-btn {
+          background-color: var(--gray-medium); border-color: var(--gray-dark); color: var(--text-dark);
+     }
+    .modal button.cancel-btn:hover, .add-pet-form button.cancel-btn:hover {
+          background-color: var(--gray-dark); color: var(--text-dark);
+      }
+    /* Disabled button style */
+    .nav-links button:disabled, .pet-card button:disabled, .modal button:disabled {
+        background-color: #ccc; border-color: #bbb; color: #888; cursor: not-allowed;
+        transform: none; box-shadow: none; opacity: 0.7;
+    }
+
+
+    /* --- Sections --- */
+    .dashboard-section {
+        background-color: var(--white); padding: 15px 20px; margin: 20px;
+        border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .dashboard-section h2 {
+        margin-top: 0; margin-bottom: 15px; color: var(--purple); font-size: 1.3em;
+        text-align: center; border-bottom: 1px solid var(--gray-medium); padding-bottom: 10px;
+    }
+
+    /* --- Collar Info --- */
+    #collarsList { max-height: 150px; overflow-y: auto; }
+    .collar-item {
+        border: 1px solid var(--gray-medium); border-radius: 5px; padding: 10px 15px;
+        margin-bottom: 10px; background-color: var(--light-purple-bg);
+        display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    }
+    .collar-item div:first-child { margin-right: 15px; flex-grow: 1; }
+    .collar-item strong { color: var(--text-dark); text-transform: capitalize; font-size: 1.05em; }
+    .collar-item .serial-number { font-size: 0.85em; color: var(--text-medium); display: block; margin-top: 3px; }
+    .collar-status { font-size: 0.85em; color: var(--text-light); display: block; margin-top: 3px; font-style: italic;}
+    .collar-status.available { color: var(--green); font-weight: 500; }
+    .battery-indicator {
+        font-weight: 500; display: flex; align-items: center; min-width: 80px;
+        margin-top: 5px; color: var(--text-dark); white-space: nowrap;
+    }
+    .battery-indicator i { margin-right: 6px; font-size: 1.2em; width: 1.2em; text-align: center; }
+    .battery-indicator i.fa-battery-full { color: var(--green); }
+    .battery-indicator i.fa-battery-three-quarters { color: #bada55; }
+    .battery-indicator i.fa-battery-half { color: var(--yellow); }
+    .battery-indicator i.fa-battery-quarter { color: var(--orange); }
+    .battery-indicator i.fa-battery-empty { color: var(--red); }
+
+    /* --- Pets Display Section --- */
+    #petsDisplayContainer {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsive grid */
+        gap: 15px;
+    }
+    .pet-card {
+        border: 1px solid var(--gray-dark); border-radius: 8px;
+        padding: 15px; background-color: var(--white);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        display: flex; flex-direction: column;
+    }
+    .pet-card h3 { /* Pet Name */
+        margin-top: 0; margin-bottom: 10px; color: var(--purple);
+        font-size: 1.2em; text-align: center;
+        border-bottom: 1px solid var(--gray-medium); padding-bottom: 8px;
+    }
+    .pet-details p, .assigned-collar p, .pet-metrics p {
+        margin: 4px 0; font-size: 0.95em; color: var(--text-medium);
+    }
+    .pet-details p strong, .assigned-collar p strong, .pet-metrics p strong { color: var(--text-dark); }
+    .assigned-collar { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--gray-medium); }
+    .assigned-collar .collar-info-text { font-size: 0.9em; color: var(--text-medium); }
+    .assigned-collar .collar-info-text strong { text-transform: capitalize; }
+    .assigned-collar .none { color: var(--text-light); font-style: italic; }
+    .pet-metrics { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--gray-medium); }
+    .pet-metrics h4 { font-size: 1em; margin-bottom: 8px; color: var(--text-dark); }
+    .pet-metrics i { margin-right: 5px; width: 1em; } /* Align icons */
+    .manage-collar-btn { margin-top: auto; /* Push button to bottom */ } /* Use auto margin */
+
+    /* --- Map --- */
+    .dashboard-map {
+      height: calc(100vh - 450px); /* Adjust height */
+      min-height: 250px; width: 100%;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-top: 1px solid var(--gray-dark); border-bottom: 1px solid var(--gray-dark);
+    }
+    /* Leaflet popup */
+    .leaflet-popup-content h3 { margin: 0 0 5px 0; color: var(--blue); font-weight: 500; }
+    .leaflet-popup-content p { margin: 0; font-size: 0.9rem; line-height: 1.4; }
+
+    /* --- AQI & Safe Zone --- */
+    .environment-indicators { /* Renamed section container */
+        text-align: center;
+    }
+    .environment-indicators h3 { /* Shared title style */
+        margin-bottom: 10px; /* Space below title */
+        color: var(--purple);
+        font-size: 1.15em; /* Slightly smaller than section title */
+    }
+    #aqiValue, #temperatureValue {
+        font-weight: 500; font-size: 1.1em;
+        margin: 5px 0; /* Spacing between AQI and Temp */
+    }
+    #aqiValue i, #temperatureValue i {
+        margin-right: 8px; /* Space between icon and text */
+    }
+
+    #safeZoneAlerts {
+      position: fixed; bottom: 10px; left: 10px; right: 10px;
+      background: #ffdddd; border: 1px solid var(--red); border-radius: 5px;
+      padding: 12px; display: none; z-index: 1100;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-align: center;
+      color: var(--red); font-weight: 500;
+    }
+
+    /* --- Modals --- */
+    .modal {
+      display: none; position: fixed; z-index: 1001;
+      left: 0; top: 0; width: 100%; height: 100%;
+      overflow: auto; background-color: rgba(0,0,0,0.5); /* Dim background */
+      align-items: center; justify-content: center; /* For flex centering */
+    }
+    .modal-content {
+      background-color: var(--white); margin: auto; padding: 25px;
+      border: 1px solid #888; width: 90%; max-width: 400px;
+      border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      box-sizing: border-box; position: relative;
+    }
+    .modal h3 { margin-top: 0; text-align: center; color: var(--purple); }
+    .modal label { display: block; margin-bottom: 5px; font-weight: 500; color: var(--text-medium); }
+    .modal input[type="text"], .modal input[type="number"], .modal select {
+      width: 100%; padding: 10px; margin-bottom: 15px; display: inline-block;
+      border: 1px solid var(--gray-dark); border-radius: 4px; box-sizing: border-box;
+    }
+    .modal .button-group { display: flex; justify-content: space-around; margin-top: 15px; }
+    .modal button { width: 45%; } /* Space buttons */
+
+    /* Specific modal styles */
+    #addPetForm { /* Use modal class for consistency */ }
+    #assignCollarModal .current-assignment {
+        font-size: 0.9em; color: var(--text-light); margin-bottom: 15px;
+        text-align: center;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body { padding-top: 100px; } /* Adjusted padding-top for potential taller navbar */
+      .navbar { padding: 10px 15px; min-height: 60px; /* Ensure minimum height */}
+      .nav-links { font-size: 1rem; }
+      .nav-link { margin-right: 10px; }
+      .nav-links button, .auth-buttons button { margin-left: 5px; font-size: 0.85rem; padding: 5px 10px;}
+      .auth-buttons button { margin-right: 5px; }
+      .dashboard-section { margin: 10px; padding: 10px 15px; }
+      #petsDisplayContainer { grid-template-columns: 1fr; } /* Stack pets */
+      .dashboard-map { height: 300px; }
+    }
+     @media (max-width: 480px) {
+        body { padding-top: 120px; } /* Further increase if navbar wraps significantly */
+         .navbar { flex-direction: column; align-items: flex-start; }
+         .nav-links, .auth-buttons { width: 100%; }
+         .auth-buttons { margin-top: 10px; display: flex; justify-content: flex-end;}
+         .nav-links button { margin-left: 0; margin-right: 8px; }
+     }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-links">
+      <span class="nav-link">Welcome, <span id="userName">User</span></span>
+      <!-- Add Pet Button - Disabled state controlled by JS -->
+      <button id="addPetNavButton" onclick="showAddPetForm()">Add Pet</button>
+      <button onclick="enableSafeZone()">Set Safe Zone</button>
+      <button onclick="removeSafeZone()">Remove Safe Zone</button>
+      <!-- Buy Collar Button -->
+      <button onclick="buyNewCollar()">Buy New Collar</button>
+    </div>
+    <div class="auth-buttons">
+      <button class="form-button" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Collars Section -->
+  <section class="dashboard-section">
+      <h2>My Collars</h2>
+      <div id="collarsList">
+          <p style="text-align:center; color: var(--text-light);">Loading collar info...</p>
+      </div>
+  </section>
+
+  <!-- Pets Section -->
+   <section class="dashboard-section">
+        <h2>My Pets</h2>
+        <div id="petsDisplayContainer">
+            <p style="text-align:center; color: var(--text-light); grid-column: 1 / -1;">Loading pet info...</p>
+            <!-- Pet cards will be loaded here -->
+        </div>
+    </section>
+
+  <!-- Map Section -->
+  <div id="dashboard-map" class="dashboard-map"></div>
+
+  <!-- Environment Indicators Section (AQI & Temperature) -->
+  <section class="dashboard-section environment-indicators" id="environmentIndicators">
+    <!-- Combined Title -->
+    <h2>Environment Status</h2>
+    <!-- AQI -->
+    <div>
+        <h3>Air Quality Index (AQI)</h3>
+        <p id="aqiValue">Loading AQI...</p>
+    </div>
+    <!-- Temperature -->
+    <div>
+        <h3>Local Temperature</h3>
+        <p id="temperatureValue">Loading Temp...</p>
+    </div>
+  </section>
+
+  <!-- Safe Zone Alert Container -->
+  <div id="safeZoneAlerts">
+    <p id="safeZoneAlertMsg"></p>
+  </div>
+
+  <!-- Add Pet Form (Modal) -->
+  <div id="addPetForm" class="modal">
+    <div class="modal-content add-pet-form">
+        <h3>Add New Pet</h3>
+        <label for="petName">Pet Name:</label>
+        <input type="text" id="petName" placeholder="e.g., Buddy" required>
+
+        <label for="petBreed">Breed:</label>
+        <input type="text" id="petBreed" placeholder="e.g., Golden Retriever" required>
+
+        <label for="petAge">Age (Years):</label>
+        <input type="number" id="petAge" placeholder="e.g., 3" required min="0">
+
+        <label for="assignCollarSelectAdd">Assign Collar:</label>
+        <select id="assignCollarSelectAdd" required>
+            <option value="" disabled selected>-- Select an Available Collar --</option>
+            <!-- Available collars populated by JS -->
+        </select>
+
+        <div class="button-group">
+            <button onclick="addPet()">Add Pet</button>
+            <button class="cancel-btn" onclick="hideModal('addPetForm')">Cancel</button>
+        </div>
+    </div>
+  </div>
+
+  <!-- Assign Collar Modal -->
+  <div id="assignCollarModal" class="modal">
+      <div class="modal-content">
+          <h3>Assign Collar to <span id="assignModalPetName">Pet</span></h3>
+          <p class="current-assignment">Current: <span id="assignModalCurrentCollar">None</span></p>
+          <input type="hidden" id="assignModalPetIndex"> <!-- Store pet index -->
+
+          <label for="assignCollarSelectModal">Select Collar:</label>
+          <select id="assignCollarSelectModal">
+              <option value="unassign">-- Unassign Collar --</option>
+              <!-- Available collars (& current) populated by JS -->
+          </select>
+
+          <div class="button-group">
+              <button onclick="handleCollarAssignment()">Save Assignment</button>
+              <button class="cancel-btn" onclick="hideModal('assignCollarModal')">Cancel</button>
+          </div>
+      </div>
+  </div>
+
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // --- Global Variables ---
+    let currentUser = null;
+    let safeZoneData = null;
+    let safeZoneCircle = null;
+    let map = null;
+    const vizagCoords = [17.6868, 83.2185];
+    const vetLocations = [
+        { name: "Happy Paws Vet", lat: 17.6900, lng: 83.2200 },
+        { name: "Animal Care Clinic", lat: 17.6840, lng: 83.2150 },
+        { name: "City Vet Hospital", lat: 17.6880, lng: 83.2250 }
+    ];
+    const collarBatteryLevels = {};
+    let intervals = {}; // Store interval IDs
+
+    // --- Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+        currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser) {
+            alert("Not logged in. Redirecting...");
+            window.location.href = 'index.html'; return;
+        }
+        // Ensure arrays exist
+        currentUser.pets = currentUser.pets || [];
+        currentUser.collars = currentUser.collars || [];
+        // Load safeZone from currentUser if it exists
+        safeZoneData = currentUser.safeZone || null;
+
+
+        document.getElementById('userName').textContent = currentUser.name || 'User';
+        initializeMap();
+        initializeBatteryLevels();
+        if (safeZoneData && map) { // Ensure map is initialized before drawing
+            drawSafeZone(safeZoneData.center, safeZoneData.radius);
+        }
+        refreshDashboardUI(); // Initial UI load
+
+        // Start intervals
+        intervals.map = setInterval(updateMapMarkers, 15000); // Map less frequent
+        intervals.metrics = setInterval(refreshPetsAndMetricsDisplay, 7000); // Metrics update
+        intervals.environment = setInterval(updateEnvironmentIndicators, 60000); // Combined AQI & Temp
+        intervals.battery = setInterval(simulateBatteryDrain, 30000);
+        intervals.ui = setInterval(refreshDashboardUI, 20000); // Refresh less dynamic parts periodically
+    });
+
+    function initializeMap() {
+        if (map) return;
+        map = L.map('dashboard-map').setView(vizagCoords, 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap | PawPulse', maxZoom: 18 }).addTo(map);
+
+        // *** UPDATED VET ICON ***
+        const vetIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3047/3047928.png', // Stethoscope/paw icon
+            iconSize: [35, 35],
+            iconAnchor: [17, 35],
+            popupAnchor: [0, -35]
+        });
+        vetLocations.forEach(vet => L.marker([vet.lat, vet.lng], { icon: vetIcon, isVet: true }).addTo(map).bindPopup(`<h3><i class="fas fa-clinic-medical"></i> ${vet.name}</h3><p>Veterinary Clinic</p>`));
+    }
+
+    function initializeBatteryLevels() {
+        (currentUser.collars || []).forEach(collar => {
+            // Initialize from saved user data if present, otherwise default to 100
+            const initialBattery = (collar.battery !== undefined && collar.battery !== null) ? collar.battery : 100;
+            collarBatteryLevels[collar.serial] = initialBattery;
+         });
+    }
+
+    // --- UI Refresh Functions ---
+    function refreshDashboardUI() {
+        // Refreshes parts that don't need high frequency updates
+        displayCollarsInfo();
+        refreshPetsAndMetricsDisplay();
+        updateAddPetButtonStatus();
+        // Also update map markers here if pets list changes significantly
+        updateMapMarkers();
+        updateEnvironmentIndicators(); // Update AQI/Temp on refresh too
+    }
+
+    function displayCollarsInfo() {
+        const collarsListDiv = document.getElementById('collarsList');
+        if (!collarsListDiv) return;
+        collarsListDiv.innerHTML = '';
+
+        const assignedSerials = new Set(currentUser.pets.map(p => p.assignedCollarSerial).filter(Boolean));
+
+        if (currentUser.collars.length > 0) {
+            currentUser.collars.forEach(collar => {
+                const batteryLevel = collarBatteryLevels[collar.serial] !== undefined ? collarBatteryLevels[collar.serial] : 0;
+                const batteryIconClass = getBatteryIconClass(Math.round(batteryLevel));
+                const isAssigned = assignedSerials.has(collar.serial);
+                const assignedPet = isAssigned ? currentUser.pets.find(p => p.assignedCollarSerial === collar.serial) : null;
+
+                const collarDiv = document.createElement('div');
+                collarDiv.className = 'collar-item';
+                collarDiv.innerHTML = `
+                    <div>
+                        <strong>${collar.model || 'Unknown'} Model</strong>
+                        <span class="serial-number">Serial: ${collar.serial || 'N/A'}</span>
+                        <span class="collar-status ${isAssigned ? '' : 'available'}">
+                            ${isAssigned ? `Assigned to: ${assignedPet?.name || 'Unknown Pet'}` : 'Available'}
+                        </span>
+                    </div>
+                    <div class="battery-indicator" id="battery-${collar.serial}">
+                         <i class="${batteryIconClass}"></i> ${Math.round(batteryLevel)}%
+                    </div>
+                `;
+                collarsListDiv.appendChild(collarDiv);
+            });
+        } else {
+            collarsListDiv.innerHTML = '<p style="text-align:center; color: var(--text-light);">No collars purchased yet. Click "Buy New Collar" to add one.</p>';
+        }
+    }
+
+    function refreshPetsAndMetricsDisplay() {
+        const petsContainer = document.getElementById('petsDisplayContainer');
+        if (!petsContainer) return;
+        petsContainer.innerHTML = ''; // Clear current cards
+
+        if (currentUser.pets.length > 0) {
+            currentUser.pets.forEach((pet, index) => {
+                const assignedCollar = currentUser.collars.find(c => c.serial === pet.assignedCollarSerial);
+                const petCard = document.createElement('div');
+                petCard.className = 'pet-card';
+                petCard.innerHTML = `
+                    <h3>🐾 ${pet.name || 'Unnamed Pet'}</h3>
+                    <div class="pet-details">
+                        <p><strong>Breed:</strong> ${pet.breed || 'N/A'}</p>
+                        <p><strong>Age:</strong> ${pet.age || '?'} years</p>
+                    </div>
+                    <div class="assigned-collar">
+                        <p><strong>Assigned Collar:</strong></p>
+                        ${assignedCollar
+                            ? `<span class="collar-info-text"><strong>${assignedCollar.model}</strong> (S/N: ${assignedCollar.serial})</span>`
+                            : '<span class="none">None Assigned</span>'
+                        }
+                    </div>
+                    <div class="pet-metrics">
+                        <h4>Live Metrics:</h4>
+                        ${generatePetMetricsHTML(pet)}
+                    </div>
+                    <button class="manage-collar-btn" onclick="openAssignCollarModal(${index})">Manage Collar</button>
+                `;
+                petsContainer.appendChild(petCard);
+            });
+        } else {
+            petsContainer.innerHTML = '<p style="text-align:center; color: var(--text-light); grid-column: 1 / -1;">No pets added yet. Add a pet using the button above (requires an available collar).</p>';
+        }
+        updateAddPetButtonStatus(); // Ensure button status reflects pet/collar changes
+    }
+
+    function generatePetMetricsHTML(pet) {
+      // Simulate metrics for display within the card
+      const heartRate = Math.floor(Math.random() * 60 + 60); // 60-120 bpm
+      const stressLevel = Math.floor(Math.random() * 100);
+      const moods = ["Happy <i class='far fa-smile'></i>", "Calm <i class='far fa-meh'></i>", "Playful <i class='fas fa-paw'></i>", "Anxious <i class='far fa-frown-open'></i>", "Sleepy <i class='fas fa-bed'></i>"];
+      const mood = moods[Math.floor(Math.random() * moods.length)];
+      // Only show metrics if a collar is assigned
+      if (pet.assignedCollarSerial && currentUser.collars.find(c => c.serial === pet.assignedCollarSerial)) {
+           return `
+                <p><i class="fas fa-heartbeat heart-icon"></i> Heart Rate: ${heartRate} bpm</p>
+                <p><i class="fas fa-brain stress-icon"></i> Stress Level: ${stressLevel}%</p>
+                <p><i class="fas fa-grin mood-icon"></i> Mood: ${mood}</p>
+            `;
+      } else {
+          return `<p style="color: var(--text-light); font-style: italic;">Assign a collar to view live metrics.</p>`;
+      }
+    }
+
+    function updateAddPetButtonStatus() {
+        const addButton = document.getElementById('addPetNavButton');
+        if (!addButton) return;
+        const unassignedCollars = getUnassignedCollars();
+        if (unassignedCollars.length > 0) {
+            addButton.disabled = false;
+            addButton.title = "Add a new pet and assign an available collar";
+        } else {
+            addButton.disabled = true;
+            addButton.title = "No available collars to assign to a new pet. Buy one first!";
+        }
+    }
+
+
+    // --- Collar Purchase & Assignment Logic ---
+    function generateUniqueSerial() {
+        let serial;
+        let attempts = 0;
+        const maxAttempts = 10; // Prevent infinite loop in unlikely scenario
+        do {
+            serial = 'PP-' + Date.now().toString().slice(-6) + Math.random().toString(36).substring(2, 5).toUpperCase();
+            attempts++;
+        } while (currentUser.collars.some(c => c.serial === serial) && attempts < maxAttempts);
+
+        if (attempts >= maxAttempts) {
+            console.error("Failed to generate a unique serial number after multiple attempts.");
+            return null; // Indicate failure
+        }
+        return serial;
+    }
+
+    function buyNewCollar() {
+        if (!currentUser) return;
+
+        // Simulate choosing a model
+        const models = ["Tracker V1", "Health Pro", "Explorer Lite"];
+        const model = models[Math.floor(Math.random() * models.length)];
+        const serial = generateUniqueSerial();
+
+        if (!serial) {
+             alert("Could not generate a unique serial number for the new collar. Please try again.");
+             return;
+        }
+
+        // Confirm purchase (simple simulation)
+        if (confirm(`Confirm purchase of a new ${model} collar (Serial: ${serial})?`)) {
+            const newCollar = {
+                serial: serial,
+                model: model,
+                battery: 100 // Start with full battery
+            };
+
+            currentUser.collars.push(newCollar);
+            collarBatteryLevels[newCollar.serial] = newCollar.battery; // Initialize battery level tracking
+
+            saveCurrentUser();
+            refreshDashboardUI(); // Update display immediately
+
+            alert(`Successfully purchased ${model} (Serial: ${serial}). It's now available in 'My Collars'.`);
+            console.log("New collar purchased:", newCollar);
+        }
+    }
+
+    function getAssignedCollarSerials() {
+        return new Set(currentUser.pets.map(p => p.assignedCollarSerial).filter(Boolean));
+    }
+
+    function getUnassignedCollars() {
+        const assignedSerials = getAssignedCollarSerials();
+        return currentUser.collars.filter(c => !assignedSerials.has(c.serial));
+    }
+
+    function openAssignCollarModal(petIndex) {
+        const pet = currentUser.pets[petIndex];
+        if (!pet) return;
+
+        document.getElementById('assignModalPetName').textContent = pet.name || 'this Pet';
+        document.getElementById('assignModalPetIndex').value = petIndex;
+
+        const currentCollar = currentUser.collars.find(c => c.serial === pet.assignedCollarSerial);
+        document.getElementById('assignModalCurrentCollar').textContent = currentCollar
+            ? `${currentCollar.model} (S/N: ${currentCollar.serial})`
+            : 'None';
+
+        const selectElement = document.getElementById('assignCollarSelectModal');
+        selectElement.innerHTML = '<option value="unassign">-- Unassign Collar --</option>'; // Start with unassign
+
+        // Add currently assigned collar (if any) as an option, selected
+        if ( currentCollar) {
+            const option = document.createElement('option');
+            option.value = currentCollar.serial;
+            option.textContent = `${ currentCollar.model} (S/N: ${ currentCollar.serial}) - Current`;
+            option.selected = true;
+            selectElement.appendChild(option);
+        }
+
+        // Add all *other* unassigned collars
+        getUnassignedCollars().forEach(collar => {
+             // Don't add if it's the one currently assigned (already added above)
+             if (!currentCollar || collar.serial !== currentCollar.serial) {
+                const option = document.createElement('option');
+                option.value = collar.serial;
+                option.textContent = `${collar.model} (S/N: ${collar.serial}) - Available`;
+                selectElement.appendChild(option);
+             }
+        });
+
+        // If no collars are available (other than current), disable selection or show message?
+        // For now, the dropdown will just have 'unassign' and potentially the 'current'.
+
+        showModal('assignCollarModal');
+    }
+
+    function handleCollarAssignment() {
+        const petIndex = parseInt(document.getElementById('assignModalPetIndex').value);
+        const selectedValue = document.getElementById('assignCollarSelectModal').value;
+
+        if (isNaN(petIndex) || !currentUser.pets[petIndex]) {
+             console.error("Invalid pet index for assignment.");
+             hideModal('assignCollarModal');
+             return;
+        }
+
+        const pet = currentUser.pets[petIndex];
+
+        if (selectedValue === "unassign") {
+            pet.assignedCollarSerial = null; // Set to null for unassigned
+            console.log(`Unassigned collar from ${pet.name}`);
+        } else {
+             // Check if the selected collar is already assigned to ANOTHER pet
+             const existingAssignment = currentUser.pets.find((p, idx) => idx !== petIndex && p.assignedCollarSerial === selectedValue);
+             if (existingAssignment) {
+                 alert(`Error: Collar (S/N: ${selectedValue}) is already assigned to ${existingAssignment.name}. Please unassign it first.`);
+                 return; // Stop the process
+             }
+             pet.assignedCollarSerial = selectedValue; // Assign the selected serial
+            console.log(`Assigned collar ${selectedValue} to ${pet.name}`);
+        }
+
+        saveCurrentUser(); // Save changes to localStorage
+        refreshDashboardUI(); // Update the display
+        hideModal('assignCollarModal');
+    }
+
+    // --- Add Pet Logic ---
+    function showAddPetForm() {
+        const unassignedCollars = getUnassignedCollars();
+        if (unassignedCollars.length === 0) {
+            alert("You don't have any available collars to assign to a new pet. Purchase a new collar or unassign one first.");
+            return;
+        }
+
+        const selectElement = document.getElementById('assignCollarSelectAdd');
+        selectElement.innerHTML = '<option value="" disabled selected>-- Select an Available Collar --</option>'; // Reset
+        unassignedCollars.forEach(collar => {
+            const option = document.createElement('option');
+            option.value = collar.serial;
+            option.textContent = `${collar.model} (S/N: ${collar.serial})`;
+            selectElement.appendChild(option);
+        });
+
+        // Clear form fields before showing
+        document.getElementById('petName').value = '';
+        document.getElementById('petBreed').value = '';
+        document.getElementById('petAge').value = '';
+
+        showModal('addPetForm');
+    }
+
+    function addPet() {
+        const name = document.getElementById('petName').value.trim();
+        const breed = document.getElementById('petBreed').value.trim();
+        const ageInput = document.getElementById('petAge').value;
+        const age = parseInt(ageInput);
+        const assignedCollarSerial = document.getElementById('assignCollarSelectAdd').value;
+
+        if (!name || !breed || isNaN(age) || age < 0 || !assignedCollarSerial) {
+            alert('Please fill in all fields correctly and select an available collar.');
+            return;
+        }
+
+        // Double-check if selected collar is *still* available (unlikely race condition, but good practice)
+        if (!getUnassignedCollars().find(c => c.serial === assignedCollarSerial)) {
+             alert('Error: The selected collar is no longer available. Please refresh and try again.');
+             hideModal('addPetForm');
+             refreshDashboardUI(); // Refresh to show correct state
+             return;
+        }
+
+        const newPet = {
+            name: name,
+            breed: breed,
+            age: age,
+            assignedCollarSerial: assignedCollarSerial,
+            // Initialize lat/lon centered on Vizag for simulation start
+            lat: vizagCoords[0] + (Math.random() * 0.002 - 0.001),
+            lon: vizagCoords[1] + (Math.random() * 0.002 - 0.001),
+        };
+
+        currentUser.pets.push(newPet);
+        saveCurrentUser(); // Save changes
+        refreshDashboardUI(); // Refresh UI
+        hideModal('addPetForm');
+    }
+
+
+    // --- Battery, Map, Environment, Safe Zone ---
+    function getBatteryIconClass(level) {
+        if (level > 80) return 'fas fa-battery-full'; if (level > 60) return 'fas fa-battery-three-quarters';
+        if (level > 35) return 'fas fa-battery-half'; if (level > 10) return 'fas fa-battery-quarter';
+        return 'fas fa-battery-empty';
+    }
+
+    function simulateBatteryDrain() {
+         if (!currentUser || !currentUser.collars) return;
+         let changed = false;
+         currentUser.collars.forEach(collar => {
+             let currentLevel = collarBatteryLevels[collar.serial];
+             if (currentLevel > 0) {
+                 // Simulate drain only if collar is assigned to a pet
+                 const isAssigned = currentUser.pets.some(p => p.assignedCollarSerial === collar.serial);
+                 const drainMultiplier = isAssigned ? 1 : 0.2; // Drain faster if assigned
+                 const drainAmount = (Math.random() * 0.5 + 0.1) * drainMultiplier; // Base drain + random factor
+                 const newLevel = Math.max(0, currentLevel - drainAmount);
+
+                 if (Math.abs(newLevel - currentLevel) > 0.1) { // Only update if change is significant enough
+                     const roundedNewLevel = Math.round(newLevel * 10) / 10; // Round to one decimal place
+                     collarBatteryLevels[collar.serial] = roundedNewLevel;
+                     changed = true;
+
+                     // Update UI directly if element exists
+                     const batteryElement = document.getElementById(`battery-${collar.serial}`);
+                     if (batteryElement) {
+                          const batteryIconClass = getBatteryIconClass(Math.round(roundedNewLevel));
+                          batteryElement.innerHTML = `<i class="${batteryIconClass}"></i> ${Math.round(roundedNewLevel)}%`;
+                     }
+                 }
+             }
+         });
+         // Optional: Save battery levels periodically if changed=true
+    }
+
+    function updateMapMarkers() {
+        if (!map) return;
+
+        // Remove only pet markers, keep vets and safe zone
+        map.eachLayer(layer => {
+            if (layer instanceof L.Marker && !layer.options.isVet) {
+                 map.removeLayer(layer);
+             }
+        });
+
+        let petsOutsideZone = [];
+        const petIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/616/616408.png', iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -38] });
+
+        currentUser.pets.forEach((pet, index) => {
+            // Simulate slight movement only if collar is assigned
+             if (pet.assignedCollarSerial) {
+                 const baseLat = pet.lat || vizagCoords[0];
+                 const baseLon = pet.lon || vizagCoords[1];
+                 // More realistic small random walk
+                 pet.lat = baseLat + (Math.random() * 0.0006 - 0.0003);
+                 pet.lon = baseLon + (Math.random() * 0.0006 - 0.0003);
+
+                 // Ensure lat/lon stay within reasonable bounds if needed (e.g., map extent)
+
+                const petLatLng = L.latLng(pet.lat, pet.lon);
+
+                // Check safe zone
+                 if (safeZoneData && safeZoneCircle) {
+                    const distance = map.distance(safeZoneData.center, petLatLng);
+                    // console.log(`Pet ${pet.name} distance: ${distance}m, Radius: ${safeZoneData.radius}m`);
+                     if (distance > safeZoneData.radius) {
+                         petsOutsideZone.push(pet.name || `Pet ${index + 1}`);
+                    }
+                 }
+
+                 // Add marker to map
+                 L.marker(petLatLng, { icon: petIcon, isVet: false })
+                    .addTo(map)
+                    .bindPopup(`<h3>🐾 ${pet.name || 'Unnamed Pet'}</h3><p>Breed: ${pet.breed || 'N/A'}<br>Age: ${pet.age || '?'} years</p>`);
+            }
+        });
+        // Update alert display
+        const alertContainer = document.getElementById('safeZoneAlerts');
+        const alertMsg = document.getElementById('safeZoneAlertMsg');
+        if (safeZoneData && petsOutsideZone.length > 0) {
+            alertMsg.textContent = `Alert: ${petsOutsideZone.join(', ')} ${petsOutsideZone.length > 1 ? 'are' : 'is'} outside the safe zone!`;
+            alertContainer.style.display = 'block';
+        } else {
+            alertContainer.style.display = 'none';
+        }
+    }
+
+    // *** UPDATED: Combined AQI and Temperature update ***
+    function updateEnvironmentIndicators() {
+        // --- AQI ---
+        let aqi = Math.floor(Math.random() * 250) + 1;
+        let aqiCategory = '';
+        let aqiColor = '';
+        let aqiIcon = 'fas fa-wind';
+        if (aqi <= 50) { aqiCategory = 'Good'; aqiColor = 'var(--green)'; aqiIcon = 'fas fa-leaf'; }
+        else if (aqi <= 100) { aqiCategory = 'Moderate'; aqiColor = '#CCCC00'; } // Yellowish
+        else if (aqi <= 150) { aqiCategory = 'Unhealthy for Sensitive'; aqiColor = 'var(--orange)'; aqiIcon = 'fas fa-head-side-cough'; }
+        else if (aqi <= 200) { aqiCategory = 'Unhealthy'; aqiColor = 'var(--red)'; aqiIcon = 'fas fa-exclamation-triangle'; }
+        else { aqiCategory = 'Very Unhealthy'; aqiColor = 'var(--purple)'; aqiIcon = 'fas fa-skull-crossbones'; }
+
+        const aqiValueEl = document.getElementById('aqiValue');
+        if (aqiValueEl) {
+            aqiValueEl.innerHTML = `<i class="${aqiIcon}"></i> ${aqi} (${aqiCategory})`;
+            aqiValueEl.style.color = aqiColor;
+        }
+
+        // --- Temperature ---
+        // Simulate temperature variation around a base (e.g., 25-35°C for Vizag)
+        const baseTemp = 30;
+        const tempVariation = (Math.random() * 10 - 5); // +/- 5 degrees
+        const temperature = (baseTemp + tempVariation).toFixed(1); // One decimal place
+
+        const tempValueEl = document.getElementById('temperatureValue');
+        if (tempValueEl) {
+            tempValueEl.innerHTML = `<i class="fas fa-thermometer-half"></i> ${temperature} °C`;
+             // Optional: Change color based on temp? e.g., blue for cold, red for hot
+            if (parseFloat(temperature) < 28) tempValueEl.style.color = 'var(--blue)';
+            else if (parseFloat(temperature) > 32) tempValueEl.style.color = 'var(--orange)';
+            else tempValueEl.style.color = 'var(--text-dark)'; // Default color
+        }
+    }
+
+     function drawSafeZone(centerLatLng, radius) {
+         if (!map) return;
+         if (safeZoneCircle) { // Remove existing circle first
+             map.removeLayer(safeZoneCircle);
+             safeZoneCircle = null;
+         }
+         safeZoneCircle = L.circle(centerLatLng, {
+             radius: radius,
+             color: 'green',
+             fillColor: '#90EE90',
+             fillOpacity: 0.3
+         }).addTo(map).bindPopup(`Safe Zone (${radius}m)`);
+     }
+
+    function enableSafeZone() {
+        if (!map) { alert("Map not initialized yet."); return; }
+        alert("Click on the map to set the center of your safe zone.");
+        map.once('click', function(e) {
+             const radiusInput = prompt("Enter safe zone radius in meters (e.g., 100):", "100");
+             const radius = parseInt(radiusInput);
+             if (radius && !isNaN(radius) && radius > 0) {
+                 removeSafeZone(false); // Remove existing zone visually and from data
+                 const center = e.latlng;
+                 drawSafeZone(center, radius); // Draw the new circle
+                 safeZoneData = { center: { lat: center.lat, lng: center.lng }, radius: radius };
+                 saveCurrentUser(); // Save the new safe zone data
+                 updateMapMarkers(); // Re-check pet positions against new zone
+                 alert(`Safe zone set with radius ${radius}m.`);
+             } else if (radiusInput !== null) { // User didn't cancel prompt
+                 alert("Invalid radius entered. Please enter a positive number.");
+             }
+         });
+    }
+
+    function removeSafeZone(showAlert = true) {
+        if (safeZoneCircle && map) {
+            map.removeLayer(safeZoneCircle);
+            safeZoneCircle = null;
+        }
+        if (safeZoneData) {
+             safeZoneData = null;
+             delete currentUser.safeZone; // Remove from user object before saving
+             saveCurrentUser();
+             updateMapMarkers(); // Update alerts etc.
+             if (showAlert) alert("Safe zone removed.");
+        } else {
+             if (showAlert) alert("No safe zone is currently set.");
+        }
+    }
+
+    // --- Modal Helpers ---
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if(modal) modal.style.display = 'flex'; // Use flex for centering
+    }
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if(modal) modal.style.display = 'none';
+    }
+    // Close modal if clicking outside content
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            hideModal(event.target.id); // Hide the specific modal clicked outside of
+        }
+    }
+
+    // --- Utility & Logout ---
+    function saveCurrentUser() {
+        if (!currentUser) return;
+        // Update safezone in the object before saving
+        if (safeZoneData) {
+            currentUser.safeZone = safeZoneData;
+        } else {
+             delete currentUser.safeZone;
+         }
+         // Persist current battery levels into the collar objects within currentUser
+         (currentUser.collars || []).forEach(collar => {
+             if (collarBatteryLevels[collar.serial] !== undefined) {
+                 // Ensure battery level is stored as a number
+                 collar.battery = Number(collarBatteryLevels[collar.serial]);
+             }
+         });
+
+         // Persist pet locations
+         (currentUser.pets || []).forEach(pet => {
+             // Make sure lat/lon are numbers if they exist
+             if (pet.lat !== null && pet.lat !== undefined) pet.lat = Number(pet.lat);
+             if (pet.lon !== null && pet.lon !== undefined) pet.lon = Number(pet.lon);
+         })
+
+        try {
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            // Also update the user's specific record using their email as the key
+            localStorage.setItem(currentUser.email, JSON.stringify(currentUser));
+            console.log("Current user data saved.");
+        } catch (error) {
+            console.error("Error saving user data to localStorage:", error);
+            // Potentially alert the user if storage is full or fails
+            alert("Warning: Could not save latest changes. Your browser storage might be full.");
+        }
+    }
+
+    function logout() {
+        saveCurrentUser(); // Save final state before logging out
+        Object.values(intervals).forEach(clearInterval); // Clear all intervals
+        localStorage.removeItem('currentUser'); // Remove the temporary session key
+        alert("You have been logged out.");
+        window.location.href = 'index.html';
+    }
+
+    // Save data on page unload/close as a fallback
+    window.addEventListener('beforeunload', saveCurrentUser);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PawPulse - Vizag</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+
+.modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10001;
+        }
+
+	.purchase-section {
+    padding: 5rem 2rem;
+    background: var(--white); /* Or var(--gray) if preferred */
+}
+
+.purchase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.purchase-card {
+    text-align: center;
+    padding: 2.5rem;
+    border-radius: 10px;
+    background: var(--gray);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Pushes button to bottom */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.purchase-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 25px rgba(138, 43, 226, 0.2);
+}
+
+.purchase-card h3 {
+    color: var(--purple);
+    margin-bottom: 1rem;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.purchase-card .price {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+ .purchase-card .price .currency {
+     font-size: 1rem;
+     vertical-align: super;
+ }
+
+.purchase-card p {
+    color: #666;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    flex-grow: 1; /* Allows description to take available space */
+}
+
+.purchase-card .buy-button {
+    /* Inherits .form-button styles, add specifics if needed */
+    width: 100%; /* Make button full width of card */
+    text-decoration: none; /* Remove underline from link */
+    display: inline-block; /* Necessary for padding/width */
+}
+
+/* Responsive */
+ @media (max-width: 768px) {
+    .purchase-section {
+        padding: 4rem 1rem;
+    }
+     .purchase-grid {
+         grid-template-columns: 1fr; /* Stack cards vertically */
+         gap: 2rem;
+     }
+     .purchase-card {
+         padding: 2rem;
+     }
+ }
+
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10002;
+            /* Rest of modal styles remain same */
+        }
+
+        /* Update mobile menu styles */
+        .auth-buttons.active {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .mobile-nav-link {
+            display: block;
+            padding: 0.8rem;
+            color: var(--purple);
+            text-decoration: none;
+        }
+        /* Base Styles and Variables */
+        :root {
+            --purple: #8A2BE2;
+            --white: #FFFFFF;
+            --gray: #F8F9FA;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+        }
+
+	/* --- Model Comparison Section --- */
+.model-comparison-section {
+    padding: 5rem 2rem;
+    background: var(--gray); /* Light background like eco/security sections */
+}
+
+.comparison-table-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    overflow-x: auto; /* Enable horizontal scroll on small screens */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px; /* Prevent table from squishing too much */
+}
+
+.comparison-table thead th {
+    background-color: var(--purple);
+    color: var(--white);
+    padding: 1rem 1.2rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1em;
+    position: sticky; /* Make header sticky during vertical scroll if needed */
+    top: 0; /* Required for sticky */
+    z-index: 1; /* Keep header above body */
+}
+
+.comparison-table thead th:first-child {
+    text-align: left;
+    border-top-left-radius: 10px; /* Match container radius */
+}
+.comparison-table thead th:last-child {
+    border-top-right-radius: 10px; /* Match container radius */
+}
+
+
+.comparison-table tbody th,
+.comparison-table tbody td {
+    padding: 0.9rem 1.2rem;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 0.95em;
+    color: #555;
+}
+
+/* Style the first column (feature names) */
+.comparison-table tbody th {
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    background-color: #fdfaff; /* Very light purple tint for feature column */
+}
+
+/* Style the check/cross icons */
+.comparison-table .check-icon {
+    color: #2ecc71; /* Green */
+    font-size: 1.4em;
+    line-height: 1;
+}
+
+.comparison-table .cross-icon {
+    color: #e74c3c; /* Red */
+    font-size: 1.4em;
+    line-height: 1;
+}
+
+/* Style for additional details (e.g., battery, upgraded) */
+.comparison-table .detail-text {
+    display: block;
+    font-size: 0.85em;
+    color: #777;
+    margin-top: 0.3em;
+}
+
+/* Alternate row styling (optional) */
+/* .comparison-table tbody tr:nth-child(odd) {
+    background-color: #f9f9f9;
+}
+.comparison-table tbody tr:nth-child(odd) th {
+    background-color: #f5f0fa;
+} */
+
+.comparison-table tbody tr:last-child th,
+.comparison-table tbody tr:last-child td {
+   border-bottom: none; /* Remove border from last row */
+}
+
+/* Responsive Adjustments */
+@media (max-width: 900px) {
+    .comparison-table {
+       min-width: 700px; /* Adjust min-width as needed */
+    }
+    .comparison-table thead th,
+    .comparison-table tbody th,
+    .comparison-table tbody td {
+        padding: 0.8rem 1rem;
+        font-size: 0.9em;
+    }
+    .comparison-table .check-icon,
+    .comparison-table .cross-icon {
+        font-size: 1.3em;
+    }
+}
+
+@media (max-width: 768px) {
+    .model-comparison-section {
+        padding: 4rem 1rem; /* Reduce padding on mobile */
+    }
+     .comparison-table-container {
+        margin-left: -1rem; /* Allow table to touch edges */
+        margin-right: -1rem;
+        border-radius: 0; /* Remove radius when full width */
+     }
+    .comparison-table {
+       min-width: 650px; /* Further adjust min-width */
+    }
+     .comparison-table thead th:first-child,
+     .comparison-table thead th:last-child {
+        border-radius: 0; /* Remove radius */
+    }
+}
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: var(--purple);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .loader {
+            font-size: 3rem;
+            animation: spin 1.5s infinite linear, pulse 1.5s infinite ease-in-out;
+            color: white;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* Navbar Styling */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--white);
+            padding: 0.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: padding 0.3s ease;
+        }
+
+        .navbar.scrolled {
+            padding: 1.5rem 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            margin-right: auto;
+        }
+
+        .nav-link {
+            color: var(--purple);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            padding: 0.5rem 0;
+        }
+
+        .nav-link:hover {
+            color: #6a1b9a;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            color: var(--purple);
+            cursor: pointer;
+            padding: 0 0.5rem;
+            z-index: 10001;
+            line-height: 1;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .auth-buttons .welcome-message {
+            color: var(--purple);
+            margin-right: 1rem;
+            font-weight: 500;
+            display: none;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--white);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 8vw;
+            font-weight: 700;
+            color: var(--white);
+            text-shadow:
+                3px 3px 0 var(--purple), -3px -3px 0 var(--purple),
+                3px -3px 0 var(--purple), -3px 3px 0 var(--purple);
+            perspective: 1000px;
+            cursor: default;
+            position: relative;
+            z-index: 2;
+            margin-bottom: 3rem;
+        }
+
+        .paw-bg {
+            position: absolute;
+            width: 60vw;
+            max-width: 400px;
+            opacity: 0.3;
+            z-index: 1;
+            pointer-events: none;
+            filter: blur(3px);
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+        }
+
+        .scroll-prompt {
+            color: var(--purple);
+            font-size: 1.2rem;
+            animation: bounce 2s infinite;
+            margin-top: 1rem;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-15px); }
+            60% { transform: translateY(-7px); }
+        }
+
+        /* About Section */
+        .about-section {
+            background: var(--gray);
+            padding: 5rem 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .about-content {
+            max-width: 1200px;
+            width: 100%;
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .text-content { flex: 1; }
+        .image-container { flex: 1; text-align: center; }
+
+        .about-image {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+
+        .about-title {
+            color: var(--purple);
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        .about-text {
+            color: #555;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            text-align: justify;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 5rem 2rem;
+            background: var(--white);
+        }
+
+        .section-heading {
+            text-align: center;
+            color: var(--purple);
+            font-size: 2.5rem;
+            margin-bottom: 3.5rem;
+            font-weight: 700;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            text-align: center;
+            padding: 2.5rem;
+            border-radius: 10px;
+            background: var(--gray);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 20px rgba(138, 43, 226, 0.15);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card h3 {
+            color: var(--purple);
+            margin-bottom: 0.8rem;
+            font-size: 1.25rem;
+        }
+
+        .feature-card p {
+            color: #666;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        /* Slider Section */
+        .slider-section {
+            padding: 5rem 0;
+            background: var(--gray);
+        }
+
+        .slider-container {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            max-width: 1100px;
+            margin: 0 auto;
+            border-radius: 15px;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: var(--white);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .slider-container::-webkit-scrollbar { display: none; }
+        .slider-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .slider-image {
+            flex: 0 0 calc(50% - 1rem);
+            scroll-snap-align: start;
+            height: 450px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        /* Eco Section */
+        .eco-section {
+            padding: 5rem 2rem;
+            background: var(--white);
+            display: flex;
+            justify-content: center;
+        }
+
+        .eco-content {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+
+        .eco-content > div {
+            background: var(--gray);
+            padding: 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            height: 100%;
+        }
+
+        .eco-content h2 {
+            color: var(--purple);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-size: 1.5rem;
+        }
+
+        .eco-content p {
+            color: #555;
+            line-height: 1.7;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-size: 1.05rem;
+        }
+
+        .eco-icon {
+            width: 45px;
+            height: 45px;
+            flex-shrink: 0;
+        }
+
+        /* Map Section */
+        .map-section {
+            min-height: 90vh;
+            background: #af7cde;
+            padding: 5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .map-title {
+            color: var(--white);
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            text-align: center;
+            text-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        }
+
+        #tracker-map {
+            width: 100%;
+            max-width: 900px;
+            height: 550px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid var(--purple);
+        }
+
+        /* Marker Styles */
+        .leaflet-marker-icon {
+            filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3));
+        }
+
+        .offline-dog-icon {
+            filter: grayscale(1) brightness(0.7) drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+
+        .leaflet-popup-content {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+        }
+
+        /* Auth Modals */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            z-index: 10002;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        @media (max-width: 768px) {
+            .auth-modal {
+                padding: 1.5rem;
+                width: 95%;
+            }
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .auth-form h2 {
+            color: var(--purple);
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .form-input {
+            padding: 0.9rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--purple);
+            box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+        }
+
+        .form-button {
+            background: var(--purple);
+            color: white;
+            padding: 0.9rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            font-family: 'Poppins', sans-serif;
+            transition: transform 0.2s ease-in-out, background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            display: block;
+            width: auto;
+            margin: 0;
+        }
+
+        .form-button:hover {
+            background-color: #7A1CC2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .form-button:active {
+            transform: translateY(0px) scale(0.98);
+            background-color: #6A1B9A;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .mobile-nav-link {
+            background: none;
+            color: var(--purple);
+            box-shadow: none;
+            text-align: left;
+            padding: 0.8rem 1rem;
+            width: 100%;
+        }
+
+        .mobile-nav-link:hover {
+            background-color: #f0e0ff;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Pet Input Styling */
+        .pet-input-group {
+            margin: 1rem 0 0.5rem;
+            padding: 1.5rem;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background-color: #fdfaff;
+        }
+
+        .pet-input-group h3 {
+            color: var(--purple);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .pet-input-group input {
+            margin-bottom: 0.8rem;
+        }
+
+        .pet-input-group input:last-child {
+            margin-bottom: 0;
+        }
+
+        #add-pet-button {
+            background-color: #e8d4ff;
+            color: var(--purple);
+            margin-top: 0.5rem;
+            width: 100%;
+        }
+
+        #add-pet-button:hover {
+            background-color: #d9bfff;
+            transform: translateY(-1px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1rem !important;
+                flex-wrap: wrap;
+            }
+
+            .navbar.scrolled {
+                padding: 1rem !important;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+                order: 1;
+            }
+
+            .auth-buttons {
+                display: none;
+                order: 2;
+                position: fixed;
+                top: 60px;
+                left: 0;
+                right: 0;
+                width: 100%;
+                background: var(--white);
+                flex-direction: column;
+                padding: 1rem 0;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                z-index: 10000;
+                align-items: stretch;
+                gap: 0;
+            }
+
+            .auth-buttons.active {
+                display: flex;
+            }
+
+            .auth-buttons .form-button {
+                margin: 0.3rem 1rem;
+                border-radius: 5px;
+                width: auto;
+                text-align: center;
+            }
+
+            .auth-buttons .mobile-nav-link {
+                margin: 0.1rem 1rem;
+                text-align: left;
+            }
+
+            .auth-buttons hr {
+                margin: 0.5rem 1rem;
+                border-color: #eee;
+            }
+
+            .auth-buttons .welcome-message {
+                display: block;
+                text-align: center;
+                padding: 0.5rem 1rem;
+                margin: 0.3rem 1rem;
+            }
+
+            .title {
+                font-size: 14vw;
+                margin-bottom: 2rem;
+            }
+
+            .hero {
+                height: 90vh;
+            }
+
+            .map-title { font-size: 2rem; }
+            .map-section { padding: 4rem 1rem; min-height: 80vh;}
+            #tracker-map { height: 400px; max-width: 100%; }
+
+            .about-section { padding: 4rem 1rem; }
+            .about-content { flex-direction: column; gap: 2rem; text-align: center; }
+            .about-text { text-align: center; }
+            .about-title { font-size: 2rem; text-align: center; }
+            .image-container { order: -1; }
+            .about-image { max-width: 80%; margin: 0 auto; }
+
+            .section-heading { font-size: 2rem; margin-bottom: 2.5rem; }
+            .features-section { padding: 4rem 1rem; }
+            .features-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+            .feature-card { padding: 2rem; }
+
+            .eco-section { padding: 4rem 1rem; }
+            .eco-content { grid-template-columns: 1fr; gap: 2rem; }
+            .eco-content > div { padding: 2rem; }
+            .eco-content h2 { font-size: 1.4rem; }
+            .eco-content p { font-size: 1rem; }
+
+            .slider-section { padding: 4rem 0; }
+            .slider-image { flex: 0 0 85%; height: 300px; }
+            .slider-container { max-width: 100%; padding: 1rem; gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loader">🐾</div>
+    </div>
+
+<div class="modal-backdrop" onclick="hideModals()"></div>
+
+     <nav class="navbar">
+        <div class="nav-links">
+            <a href="#home" class="nav-link">Home</a>
+	<a href="#about" class="nav-link">About</a>
+            <a href="#features" class="nav-link">Features</a>
+	<a href="#comparison" class="nav-link">Compare Models</a>
+	<a href="#purchase" class="nav-link">Buy Now</a>
+            <a href="#map" class="nav-link">Map</a>
+        </div>
+        <button class="mobile-menu-btn">☰</button>
+        <div class="auth-buttons">
+            <!-- Mobile nav links -->
+            <a href="#home" class="mobile-nav-link">Home</a>
+            <a href="#features" class="mobile-nav-link">Features</a>
+            <a href="#map" class="mobile-nav-link">Map</a>
+            <a href="#about" class="mobile-nav-link">About</a>
+		 <a href="#comparison" class="mobile-nav-link">Compare Models</a>
+		<a href="#purchase" class="mobile-nav-link">Buy Now</a>
+            <div class="auth-buttons-container"></div>
+        </div>
+    </nav>
+
+    <div id="loginModal" class="auth-modal">
+        <form class="auth-form" onsubmit="handleLogin(event)">
+            <h2>Login</h2>
+            <input type="email" name="email" class="form-input" placeholder="Email" required>
+            <input type="password" name="password" class="form-input" placeholder="Password" required>
+            <button type="submit" class="form-button">Login</button>
+        </form>
+    </div>
+
+
+    <section class="hero" id="home">
+        <img src="./bruh.png" class="paw-bg" alt="paw background" onerror="this.style.display='none'">
+        <h1 class="title">PAWPULSE</h1>
+        <div class="scroll-prompt">Scroll to Explore ↓</div>
+    </section>
+
+        <section class="about-section" id="about">
+        <div class="about-content">
+            <div class="text-content">
+                <h2 class="about-title">About PawPulse</h2>
+                <p class="about-text">
+                    Welcome to PawPulse, Visakhapatnam's dedicated solution for pet safety and peace of mind! 
+                    We provide a revolutionary pet tracking system designed to keep your furry friends safe by 
+                    offering real-time GPS tracking right here in Vizag. Set safe zones, track activity levels, 
+                    and ensure the well-being of your beloved companion with PawPulse.
+                </p>
+            </div>
+            <div class="image-container">
+                <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80"
+                     alt="Happy dog wearing a PawPulse collar"
+                     class="about-image"
+                     onerror="this.src='https://placehold.co/400x300/8A2BE2/FFFFFF?text=Happy+Dog'">
+            </div>
+        </div>
+    </section>
+
+    <section class="features-section" id="features">
+        <h2 class="section-heading">What PawPulse Offers</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A2BE2'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E"
+                     class="feature-icon" alt="GPS Pin Icon">
+                <h3>Real-time GPS Tracking</h3>
+                <p>Pinpoint your pet's location in Vizag with updates every 30 seconds.</p>
+            </div>
+            <div class="feature-card">
+                 <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A2BE2'%3E%3Cpath d='M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z'/%3E%3C/svg%3E"
+                    class="feature-icon" alt="Activity Chart Icon">
+                <h3>Activity Monitoring</h3>
+                <p>Track daily steps, active minutes, and rest periods for a healthy lifestyle.</p>
+            </div>
+            <div class="feature-card">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A2BE2'%3E%3Cpath d='M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.44 2.78 3.07 0 1.65-1.35 3-3 3z'/%3E%3C/svg%3E"
+                     class="feature-icon" alt="Geofence Cloud Icon">
+                <h3>Safe Zone Alerts</h3>
+                <p>Define virtual fences (e.g., your home, park) and get notified if your pet leaves.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slider-section">
+         <h2 class="section-heading">Designed for Comfort & Style</h2>
+        <div class="slider-container">
+            <img src="https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb" class="slider-image" alt="Happy dog wearing the PawPulse collar" onerror="this.src='https://placehold.co/600x450/eeeeee/777777?text=Dog+1'">
+            <img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e" class="slider-image" alt="Close-up of the PawPulse tracking device" onerror="this.src='https://placehold.co/600x450/eeeeee/777777?text=Dog+2'">
+            <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1" class="slider-image" alt="Dog resting comfortably with the collar" onerror="this.src='https://placehold.co/600x450/eeeeee/777777?text=Dog+3'">
+            <img src="https://images.unsplash.com/photo-1598133894008-61f7fdb8cc3a" class="slider-image" alt="Another stylish dog with the PawPulse collar" onerror="this.src='https://placehold.co/600x450/eeeeee/777777?text=Dog+4'">
+        </div>
+    </section>
+
+	<section class="model-comparison-section" id="comparison">
+    <h2 class="section-heading">Model Comparison: Features & Price</h2>
+    <div class="comparison-table-container">
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Feature / Component</th>
+                    <th>Base Model</th>
+                    <th>Mid-Range Model</th>
+                    <th>Premium Model</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <th>Microcontroller <span class="detail-text">(ESP32 / nRF52840)</span></th>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>GPS Tracking <span class="detail-text">(u-blox NEO-6M)</span></th>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td>
+                        <span class="check-icon">✅</span>
+                        <span class="detail-text">Upgraded (Quactel L86)</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Heart Rate & Respiration <span class="detail-text">(MAX30102)</span></th>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Body Temperature <span class="detail-text">(DS18B20 / MLX90614)</span></th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Accelerometer & Gyroscope <span class="detail-text">(MPU6050)</span></th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Environmental Sensor <span class="detail-text">(DHT22)</span></th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Hydration Tracking <span class="detail-text">(Load Cell)</span></th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>UV Exposure Sensor <span class="detail-text">(VEML6075)</span></th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                 <tr>
+                    <th>Sound Sensor <span class="detail-text">(Barking Detection)</span></th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                 <tr>
+                    <th>Air Quality Sensor <span class="detail-text">(MQ135)</span></th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Camera Module <span class="detail-text">(ESP32-CAM)</span></th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Battery</th>
+                    <td>
+                        <span class="check-icon">✅</span>
+                        <span class="detail-text">(1000mAh)</span>
+                    </td>
+                     <td>
+                        <span class="check-icon">✅</span>
+                        <span class="detail-text">(1000mAh)</span>
+                    </td>
+                     <td>
+                        <span class="check-icon">✅</span>
+                        <span class="detail-text">Upgraded (1500mAh+)</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Wireless Charging</th>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Buzzer + Vibration Motor</th>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>RGB LED + Reflective Safety Strips</th>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Water-Resistant Casing</th>
+                     <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Detachable Collar Module</th>
+                     <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Speaker <span class="detail-text">(Audio Commands)</span></th>
+                     <td><span class="cross-icon">❌</span></td>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                 <tr>
+                    <th>Live App Integration</th>
+                     <td>
+                         <span class="check-icon">✅</span>
+                         <span class="detail-text">(Basic Data)</span>
+                    </td>
+                     <td>
+                         <span class="check-icon">✅</span>
+                         <span class="detail-text">(Expanded Metrics)</span>
+                    </td>
+                     <td>
+                         <span class="check-icon">✅</span>
+                         <span class="detail-text">(Full Dashboard + Video)</span>
+                    </td>
+                </tr>
+                 <tr>
+                    <th>Training Tools via App</th>
+                     <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                 <tr>
+                    <th>Geofencing + Alerts</th>
+                     <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                 <tr>
+                    <th>Behavior Analysis (AI-based)</th>
+                     <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td>
+                        <span class="check-icon">✅</span>
+                         <span class="detail-text">(Enhanced with ML)</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>OTA Firmware Updates</th>
+                     <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Social Sharing, Lost Mode, Multi-Pet</th>
+                     <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <tr>
+                    <th>Live Camera View in App</th>
+                     <td><span class="cross-icon">❌</span></td>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                 <tr>
+                    <th>Air Quality Alerts in App</th>
+                     <td><span class="cross-icon">❌</span></td>
+                    <td><span class="cross-icon">❌</span></td>
+                    <td><span class="check-icon">✅</span></td>
+                </tr>
+                <!-- Add more rows as needed -->
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="purchase-section" id="purchase">
+    <h2 class="section-heading">Choose Your PawPulse</h2>
+    <div class="purchase-grid">
+        <div class="purchase-card">
+            <div> <!-- Content wrapper for flex grow -->
+                <h3>Base Model</h3>
+                <div class="price"><span class="currency">₹</span>3,499</div>
+                <p>Essential GPS tracking and activity monitoring for everyday peace of mind. Reliable and budget-friendly.</p>
+            </div>
+            <a href="purchase.html?model=base" class="form-button buy-button">Buy Base Model</a>
+        </div>
+        <div class="purchase-card">
+             <div>
+                <h3>Mid-Range Model</h3>
+                <div class="price"><span class="currency">₹</span>4,999</div>
+                <p>Advanced tracking plus health sensors like temperature & hydration. Includes wireless charging & training tools.</p>
+            </div>
+            <a href="purchase.html?model=mid-range" class="form-button buy-button">Buy Mid-Range Model</a>
+        </div>
+        <div class="purchase-card">
+             <div>
+                <h3>Premium Model</h3>
+                 <div class="price"><span class="currency">₹</span>6,999</div>
+                <p>All features included: AI behavior analysis, live camera view, air quality alerts, speaker commands, and more!</p>
+            </div>
+            <a href="purchase.html?model=premium" class="form-button buy-button">Buy Premium Model</a>
+        </div>
+    </div>
+</section>
+
+    <section class="eco-section">
+        <div class="eco-content">
+             <div>
+                 <h2> <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238A2BE2'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z'/%3E%3C/svg%3E" class="eco-icon" alt="Battery Icon"> Eco-Conscious Design</h2>
+                 <p>🔋 Long-lasting rechargeable battery (days, not hours).</p>
+                 <p>🌱 Packaged using recyclable and biodegradable materials.</p>
+                 <p>♻️ We encourage responsible disposal of old devices.</p>
+             </div>
+             <div>
+                 <h2> <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.66 0-3 1.34-3 3v9c0 1.66 1.34 3 3 3h12c1.66 0 3-1.34 3-3v-9c0-1.66-1.34-3-3-3zm-6 10c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z' fill='%238A2BE2'/%3E%3C/svg%3E" class="eco-icon" alt="Secure Lock Icon"> Premium Comfort & Security</h2>
+                 <p>🛋️ Lightweight design with soft, hypoallergenic silicone.</p>
+                 <p>💧 Water-resistant casing for all-weather adventures.</p>
+                 <p>🔐 Your pet's data is encrypted and never shared.</p>
+             </div>
+        </div>
+    </section>
+
+    <section class="map-section" id="map">
+        <h2 class="map-title">See PawPulse Users in Vizag!</h2>
+        <div id="tracker-map"></div>
+    </section>
+
+    <footer style="padding: 3rem 1rem; text-align: center; background: #333; color: #aaa; font-size: 0.9em;">
+        <p>&copy; 2025 PawPulse Vizag. Keeping Vizag's pets safe.</p>
+        <p>Made with ❤️ in Visakhapatnam</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // --- Global Variables ---
+        const vizagCoords = [17.6868, 83.2185];
+        let petCounter = 0;
+        let map;
+        const markers = {};
+
+        // --- Loading Screen ---
+        window.addEventListener("load", function () {
+            const loader = document.getElementById("loading-screen");
+            if (loader) {
+                loader.style.opacity = "0";
+                setTimeout(() => {
+                    loader.style.display = "none";
+                    initializeMap();
+                    splitTitle();
+                }, 500);
+            } else {
+                initializeMap();
+                splitTitle();
+            }
+        });
+
+        // --- Navbar Effects ---
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            const authButtons = document.querySelector('.auth-buttons');
+            if (!navbar) return;
+
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+            
+            if (authButtons && authButtons.classList.contains('active')) {
+                authButtons.classList.remove('active');
+            }
+        });
+
+        // Mobile Menu Toggle
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.querySelector('.auth-buttons')?.classList.toggle('active');
+            });
+        }
+
+        // Close modals/menu on click outside
+        document.addEventListener('click', function(e) {
+            const authButtons = document.querySelector('.auth-buttons');
+            const mobileMenuBtnElem = document.querySelector('.mobile-menu-btn');
+            if (!authButtons || !mobileMenuBtnElem) return;
+
+            const isClickInsideMenu = authButtons.contains(e.target);
+            const isClickOnMenuBtn = mobileMenuBtnElem.contains(e.target);
+            const isClickInsideModal = e.target.closest('.auth-modal');
+
+            if (!isClickInsideMenu && !isClickOnMenuBtn && !isClickInsideModal && authButtons.classList.contains('active')) {
+                authButtons.classList.remove('active');
+            }
+
+            const modals = document.querySelectorAll('.auth-modal');
+            modals.forEach(modal => {
+                if (e.target === modal) {
+                    hideModals();
+                }
+            });
+
+            if (e.target.closest('.auth-buttons .form-button') || e.target.closest('.auth-buttons .nav-link')) {
+                authButtons.classList.remove('active');
+                if (!e.target.closest('.auth-buttons button[onclick^="showModal"]')) {
+                    hideModals();
+                }
+            }
+        });
+
+        // --- Modal Handling ---
+        function showModal(type) {
+            document.querySelector('.modal-backdrop').style.display = 'block';
+            document.getElementById(`${type}Modal`).style.display = 'block';
+        }
+
+        function hideModals() {
+            document.querySelector('.modal-backdrop').style.display = 'none';
+            document.querySelectorAll('.auth-modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // --- Authentication Functions ---
+        function addPetField() {
+            petCounter++;
+            const petFields = document.getElementById('petFields');
+            const newPetGroup = document.createElement('div');
+            newPetGroup.className = 'pet-input-group';
+            newPetGroup.innerHTML = `
+                <h3>Pet ${petCounter} Details</h3>
+                <input type="text" name="petName${petCounter}" placeholder="Pet Name" required>
+                <input type="text" name="petBreed${petCounter}" placeholder="Breed" required>
+                <input type="number" name="petAge${petCounter}" placeholder="Age" required>
+            `;
+            petFields.appendChild(newPetGroup);
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const user = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                pets: []
+            };
+
+            // Validate pets
+            let hasPets = false;
+            for (let i = 1; i <= petCounter; i++) {
+                const pet = {
+                    name: formData.get(`petName${i}`),
+                    breed: formData.get(`petBreed${i}`),
+                    age: formData.get(`petAge${i}`)
+                };
+                if (pet.name && pet.breed && pet.age) {
+                    user.pets.push({
+                        ...pet,
+                        id: `pet_${Date.now()}_${i}`,
+                        lat: getRandomVizagLatitude(),
+                        lon: getRandomVizagLongitude(),
+                        lastUpdate: Date.now(),
+                        online: Math.random() > 0.2
+                    });
+                    hasPets = true;
+                }
+            }
+
+            if (!hasPets) {
+                alert('Please add at least one valid pet!');
+                return;
+            }
+
+            if (localStorage.getItem(user.email)) {
+                alert('Account already exists!');
+                return;
+            }
+
+            localStorage.setItem(user.email, JSON.stringify(user));
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            alert('Registration successful!');
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            window.location.href = 'dashboard.html';
+        }
+
+        function handleLogin(e) {
+        e.preventDefault(); // Prevent the default form submission
+        const formData = new FormData(e.target);
+        const email = formData.get('email'); // Assuming the input field name is 'email'
+        const password = formData.get('password'); // Assuming the input field name is 'password'
+
+        // --- START: Admin Credentials Check ---
+        if (email === 'admin@gmail.com' && password === 'admin123') {
+            // alert('Admin login successful. Redirecting...'); // Optional: show a confirmation
+            window.location.href = 'admin.html'; // Redirect to admin page
+            return; // IMPORTANT: Stop the function here so it doesn't proceed to user check
+        }
+        // --- END: Admin Credentials Check ---
+
+        // --- Regular User Login Logic (Existing code) ---
+        const user = JSON.parse(localStorage.getItem(email)); // Check localStorage for the user
+
+        // Check if user exists and the password matches
+        if (user && user.password === password) {
+            localStorage.setItem('currentUser', JSON.stringify(user)); // Set the current user in storage
+            window.location.href = 'dashboard.html'; // Redirect regular users to dashboard
+        } else {
+            // User not found or password incorrect
+            alert('Invalid credentials!');
+        }
+    }
+
+        function handleLogout() {
+            localStorage.removeItem('currentUser');
+            window.location.reload();
+        }
+
+        // --- Update UI ---
+        function updateUserUI() {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            const authButtons = document.querySelector('.auth-buttons');
+            authButtons.innerHTML = '';
+
+            if (currentUser) {
+                authButtons.innerHTML = `
+                    <span class="welcome-message">Hi, ${currentUser.name}!</span>
+                    <button class="form-button" onclick="handleLogout()">Logout</button>
+                `;
+            } else {
+                authButtons.innerHTML = `
+                    <button class="form-button" onclick="showModal('login')">Login</button>
+                                    `;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUserUI();
+            initializeMap();
+        });
+
+        // --- Map Functions ---
+        function initializeMap() {
+            // Prevent re-initialization or if map element doesn't exist
+            if (map || !document.getElementById('tracker-map')) return;
+
+            map = L.map('tracker-map').setView(vizagCoords, 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap | PawPulse',
+                maxZoom: 18,
+            }).addTo(map);
+
+            // Define icons for online and offline pets
+            const onlineIcon = L.icon({
+                iconUrl: 'https://cdn-icons-png.flaticon.com/512/616/616408.png', // Active dog icon
+                iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -38]
+            });
+            const offlineIcon = L.icon({
+                iconUrl: 'https://cdn-icons-png.flaticon.com/512/194/194279.png', // Less prominent/offline icon
+                iconSize: [35, 35], iconAnchor: [17, 35], popupAnchor: [0, -35],
+                className: 'offline-dog-icon' // Apply grayscale/brightness via CSS
+            });
+
+            // --- REMOVED: Logic to load pets from localStorage ---
+            // const allPets = [];
+            // try {
+            //     for (let i = 0; i < localStorage.length; i++) {
+            //         const key = localStorage.key(i);
+            //         if (key && key !== 'currentUser' && !key.startsWith('leaflet')) {
+            //             // ... (rest of the loading logic was here) ...
+            //         }
+            //     }
+            // } catch (error) { console.error("Storage error:", error); }
+
+            // --- KEPT/MODIFIED: Call addSamplePets directly ---
+            // We don't need to check if allPets.length is 0 anymore,
+            // just directly add the samples.
+            addSamplePets(onlineIcon, offlineIcon);
+        }
+
+
+        function addSamplePets(onlineIcon, offlineIcon) {
+            const samplePets = [
+                { id: "sample_1", name: "Rocky", breed: "German Shepherd", age: 4, lat: 17.7280, lon: 83.3367, online: true, lastUpdate: Date.now() - 120000 },
+                { id: "sample_2", name: "Lakshmi", breed: "Golden Retriever", age: 2, lat: 17.7500, lon: 83.3444, online: true, lastUpdate: Date.now() - 300000 },
+                { id: "sample_3", name: "Bheem", breed: "Indian Pariah", age: 3, lat: 17.7666, lon: 83.2486, online: false, lastUpdate: Date.now() - 3600000 * 2 }
+            ];
+            
+            samplePets.forEach(pet => {
+                const marker = L.marker([pet.lat, pet.lon], {
+                    icon: pet.online ? onlineIcon : offlineIcon
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <div style="min-width: 180px;">
+                        <h3 style="margin: 0 0 5px 0; color: var(--purple);">🐾 ${pet.name} (Sample)</h3>
+                        <p style="margin: 2px 0; font-size: 0.9em;">
+                            Breed: ${pet.breed}<br>
+                            Age: ${pet.age} years<br>
+                            Status: <span style="color: ${pet.online ? '#2ecc71' : '#95a5a6'}; font-weight:bold;">${pet.online ? 'Online' : 'Offline'}</span><br>
+                            <span style="font-size: 0.8em; color: #7f8c8d;">Last Update: ${new Date(pet.lastUpdate).toLocaleString()}</span>
+                        </p>
+                    </div>
+                `);
+                markers[pet.id] = marker;
+            });
+        }
+
+        function getRandomVizagLatitude() {
+            return Math.random() * (17.85 - 17.65) + 17.65;
+        }
+
+        function getRandomVizagLongitude() {
+            return Math.random() * (83.40 - 83.15) + 83.15;
+        }
+
+        // --- Title Animation ---
+        function splitTitle() {
+            const titleElement = document.querySelector('.title');
+            if (!titleElement || titleElement.querySelector('span')) return;
+
+            const text = titleElement.textContent;
+            titleElement.innerHTML = '';
+            text.split('').forEach(char => {
+                const span = document.createElement('span');
+                span.textContent = char;
+                if (char === ' ') span.style.width = '0.5em';
+                titleElement.appendChild(span);
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateUserUI();
+        });
+    </script>
+</body>
+</html>

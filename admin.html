@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - PawPulse Users</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --purple: #800080; --white: #FFFFFF; --gray-light: #f5f5f5;
+            --gray-medium: #eee; --gray-dark: #ddd; --text-dark: #333;
+            --text-medium: #555; --text-light: #777; --blue: #007BFF;
+        }
+        body {
+            font-family: 'Roboto', sans-serif; margin: 0; padding: 20px;
+            background-color: var(--gray-light); color: var(--text-dark);
+        }
+        h1 {
+            color: var(--purple); text-align: center; border-bottom: 2px solid var(--purple); padding-bottom: 10px; margin-bottom: 20px;
+        }
+        #userListContainer {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .user-card {
+            background-color: var(--white); border: 1px solid var(--gray-dark);
+            border-radius: 8px; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .user-card h3 {
+            margin-top: 0; color: var(--purple); font-size: 1.2em;
+            border-bottom: 1px solid var(--gray-medium); padding-bottom: 8px; margin-bottom: 10px;
+        }
+        .user-card p { margin: 5px 0; font-size: 0.95em; color: var(--text-medium); }
+        .user-card p strong { color: var(--text-dark); }
+        .user-card .collars-list { font-size: 0.85em; margin-top: 8px; max-height: 60px; overflow-y: auto; padding-left: 15px;}
+        .user-card button {
+            background-color: var(--blue); color: var(--white); border: none;
+            padding: 6px 12px; border-radius: 4px; font-size: 0.9rem; cursor: pointer;
+            transition: background-color 0.2s ease; margin-top: 15px;
+        }
+        .user-card button:hover { background-color: #0056b3; }
+
+        /* Basic Modal Styles (copied/simplified from dashboard) */
+        .modal {
+          display: none; position: fixed; z-index: 1001;
+          left: 0; top: 0; width: 100%; height: 100%;
+          overflow: auto; background-color: rgba(0,0,0,0.5);
+          align-items: center; justify-content: center;
+        }
+        .modal-content {
+          background-color: var(--white); margin: auto; padding: 25px;
+          border: 1px solid #888; width: 90%; max-width: 400px;
+          border-radius: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .modal h3 { margin-top: 0; text-align: center; color: var(--purple); }
+        .modal label { display: block; margin-bottom: 5px; font-weight: 500; color: var(--text-medium); }
+        .modal input[type="text"], .modal input[type="email"] {
+          width: 100%; padding: 10px; margin-bottom: 15px; display: inline-block;
+          border: 1px solid var(--gray-dark); border-radius: 4px; box-sizing: border-box;
+        }
+         .modal input[readonly] { background-color: var(--gray-light); cursor: not-allowed; }
+        .modal .button-group { display: flex; justify-content: space-around; margin-top: 15px; }
+        .modal button {
+             background-color: var(--purple); color: var(--white); border: 1px solid var(--purple);
+             padding: 8px 15px; border-radius: 4px; font-size: 0.9rem; cursor: pointer;
+             transition: all 0.2s ease; width: 45%;
+         }
+        .modal button:hover { background-color: #600060; }
+        .modal button.cancel-btn {
+             background-color: var(--gray-medium); border-color: var(--gray-dark); color: var(--text-dark);
+        }
+        .modal button.cancel-btn:hover { background-color: var(--gray-dark); }
+
+    </style>
+</head>
+<body>
+
+    <h1>Admin Panel - User Management</h1>
+
+    <div id="userListContainer">
+        <p>Loading user data...</p>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <h3>Edit User Details</h3>
+
+            <input type="hidden" id="editUserOriginalEmail"> <!-- Store original email to find user -->
+
+            <label for="editUserName">Name:</label>
+            <input type="text" id="editUserName" required>
+
+            <label for="editUserEmail">Email (Read-Only):</label>
+            <input type="email" id="editUserEmail" readonly>
+            <small>User email cannot be changed here.</small>
+
+            <!-- Add fields for other editable properties if needed, e.g., phone -->
+            <!-- Editing passwords directly here is highly discouraged for security reasons -->
+
+            <div class="button-group">
+                <button onclick="saveUserEdits()">Save Changes</button>
+                <button class="cancel-btn" onclick="hideEditModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allUsers = []; // To store loaded user objects
+
+        document.addEventListener('DOMContentLoaded', loadUsers);
+
+        function loadUsers() {
+            allUsers = []; // Reset
+            const container = document.getElementById('userListContainer');
+            container.innerHTML = ''; // Clear previous content
+
+            try {
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    // Basic check to see if the key looks like an email and isn't 'currentUser'
+                    if (key.includes('@') && key !== 'currentUser') {
+                        try {
+                            const userData = JSON.parse(localStorage.getItem(key));
+                            // Basic validation: check if it has expected properties
+                            if (userData && userData.email && userData.password && userData.name) {
+                                allUsers.push(userData);
+                            }
+                        } catch (parseError) {
+                            console.warn(`Could not parse localStorage item with key: ${key}`, parseError);
+                        }
+                    }
+                });
+            } catch (storageError) {
+                console.error("Error accessing localStorage:", storageError);
+                container.innerHTML = '<p style="color: red;">Error loading user data from storage.</p>';
+                return;
+            }
+
+            displayUsers();
+        }
+
+        function displayUsers() {
+            const container = document.getElementById('userListContainer');
+            container.innerHTML = ''; // Clear loading message or previous list
+
+            if (allUsers.length === 0) {
+                container.innerHTML = '<p>No user data found in local storage (users need to log in via index.html first).</p>';
+                return;
+            }
+
+            allUsers.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+
+                const petsCount = user.pets ? user.pets.length : 0;
+                const collarsCount = user.collars ? user.collars.length : 0;
+
+                let collarsHTML = 'None';
+                if (user.collars && user.collars.length > 0) {
+                    collarsHTML = '<ul class="collars-list">';
+                    user.collars.forEach(collar => {
+                         collarsHTML += `<li>${collar.model || 'Unknown'} (S/N: ${collar.serial || 'N/A'})</li>`;
+                    });
+                     collarsHTML += '</ul>';
+                }
+
+
+                card.innerHTML = `
+                    <h3>${user.name}</h3>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>Pets Registered:</strong> ${petsCount}</p>
+                    <p><strong>Collars Purchased:</strong> ${collarsCount}</p>
+                    <div><strong>Collars:</strong> ${collarsHTML}</div>
+                    <button onclick="openEditModal('${user.email}')">Edit User</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openEditModal(userEmail) {
+            const user = allUsers.find(u => u.email === userEmail);
+            if (!user) {
+                alert("User not found!");
+                return;
+            }
+
+            document.getElementById('editUserOriginalEmail').value = user.email;
+            document.getElementById('editUserName').value = user.name || '';
+            document.getElementById('editUserEmail').value = user.email || ''; // Display email, but make it readonly
+
+            showEditModal();
+        }
+
+        function saveUserEdits() {
+            const originalEmail = document.getElementById('editUserOriginalEmail').value;
+            const newName = document.getElementById('editUserName').value.trim();
+
+            if (!originalEmail || !newName) {
+                alert("Please provide a valid name.");
+                return;
+            }
+
+            // Find the user in our memory array and update
+            const userIndex = allUsers.findIndex(u => u.email === originalEmail);
+            if (userIndex === -1) {
+                alert("Original user not found. Cannot save.");
+                hideEditModal();
+                return;
+            }
+
+            // Get the user object directly from localStorage to ensure we save all its data
+             try {
+                let userToUpdate = JSON.parse(localStorage.getItem(originalEmail));
+                 if (!userToUpdate) {
+                     throw new Error("User data missing in localStorage.");
+                 }
+
+                // Update the editable fields
+                 userToUpdate.name = newName;
+                // Add other fields here if they become editable
+
+                // Save back to localStorage using the original email as the key
+                localStorage.setItem(originalEmail, JSON.stringify(userToUpdate));
+
+                // Update the user in the `allUsers` array as well for consistency
+                allUsers[userIndex] = userToUpdate;
+
+                alert(`User ${originalEmail} updated successfully.`);
+                hideEditModal();
+                displayUsers(); // Refresh the list on the page
+            } catch (error) {
+                 console.error("Error saving user data:", error);
+                 alert("Failed to save user data. Check console for details.");
+             }
+        }
+
+        function showEditModal() {
+            document.getElementById('editUserModal').style.display = 'flex';
+        }
+
+        function hideEditModal() {
+            document.getElementById('editUserModal').style.display = 'none';
+        }
+
+         // Close modal if clicking outside content (optional)
+        window.onclick = function(event) {
+            const modal = document.getElementById('editUserModal');
+            if (event.target == modal) {
+                 hideEditModal();
+            }
+        }
+
+    </script>
+
+</body>
+</html>
